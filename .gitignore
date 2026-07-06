@@ -21,3 +21,29 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+__pycache__/
+*.pyc
+*.pyo
+exo/
+.venv/
+.env
+
+# Generated output figures & JSON (can be regenerated)
+output/*.png
+output/*.json
+output/*.drawio
+
+# Large temp / inspiration images
+piepline-*.png
+pipeline.png
+
+# Temp Office files
+~$*
+
+# ML model artifacts (can be retrained)
+models/*.joblib
+
+# OS files
+Thumbs.db
+.DS_Store
