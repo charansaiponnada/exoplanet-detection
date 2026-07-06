@@ -42,9 +42,19 @@ TESS Light Curves (MAST archive / curated dataset)
    └────────┬─────────┘  likely_eclipsing_binary / ambiguous
             │
             ▼
+   ┌───────────────────────────────┐
+   │ Feature Engineering (Layer 4) │  depth/duration consistency, shape,
+   └────────┬──────────────────────┘  skewness/kurtosis/entropy, red noise
+            │
+            ▼
+   ┌───────────────────────────────┐
+   │ Scientific Validation (Layer 6)│  physical plausibility checks +
+   └────────┬──────────────────────┘  rule-based confidence score
+            │
+            ▼
    ┌──────────────────┐
    │ Parameter Report │  Period, depth, duration, detection SNR,
-   └──────────────────┘  confidence level
+   └──────────────────┘  confidence score + verdict
 ```
 
 ---
@@ -82,6 +92,36 @@ limitation, planned for Phase 2.
 
 ---
 
+## Feature Engineering & Confidence Scoring (Layers 4 + 6)
+
+Beyond the three vetting tests, `src/features.py` computes a flat feature
+vector per candidate — per-transit depth consistency, ingress/egress
+symmetry and slope, skewness/kurtosis/entropy of the out-of-transit
+residuals, and a CDPP-like red-noise ratio. `src/scoring.py` turns those
+features plus the vetting flags into a physical-plausibility check (e.g.
+duration/period duty cycle, depth > 10%, transits observed) and a single
+auditable 0–1 confidence score with a verdict:
+`high_confidence_candidate` / `requires_human_review` /
+`low_confidence_likely_false_positive`.
+
+This is deliberately a transparent rule-based scorer, not a trained model —
+every term in the score breakdown is one inspectable number, satisfying the
+PS's explainability and confidence-level requirements ahead of the labeled
+dataset needed to train the Layer 5 classifier below. The function
+signatures (`candidate + features + classification in, score + breakdown
+out`) are the intended interface for the future learned uncertainty head,
+so swapping in a trained model later won't require touching `main.py`.
+
+Results on real TESS targets (`uv run src/main.py --csv data/tess/<file>.csv`):
+
+| Target                          | Classification              | Confidence | Verdict |
+|----------------------------------|------------------------------|-----------|---------|
+| TIC 25155310 (TOI-270, sector 01) | candidate_planetary_transit | 0.98      | high_confidence_candidate |
+| TIC 307210830 (Pi Mensae, sector 02) | ambiguous_requires_followup | 0.79 | requires_human_review (short/V-shaped transit from 1 sector) |
+| TIC 150428135 (sector 01)        | ambiguous_requires_followup  | 0.02      | low_confidence_likely_false_positive |
+
+---
+
 ## Planned Enhancement (30-Hour Finale)
 
 Once ISRO's curated labeled dataset (confirmed planets / eclipsing binaries /
@@ -106,6 +146,8 @@ layer will be extended with a **Mamba (State Space Model) sequence classifier**:
 | Detrending        | `scipy.signal.savgol_filter`      |
 | Period search     | `astropy.timeseries.BoxLeastSquares` |
 | Vetting           | Custom classical tests (this repo)|
+| Feature engineering | Custom (`scipy.stats` skew/kurtosis, this repo) |
+| Confidence scoring | Custom rule-based scorer (this repo) |
 | Deep learning     | PyTorch + Mamba (Phase 2)         |
 | Parameter fitting | `batman` (Phase 2 refinement)     |
 | Visualization     | `matplotlib` / Streamlit dashboard|
@@ -122,6 +164,8 @@ exoplanet-pipeline/
 │   ├── detrend.py       # Savitzky-Golay flattening + sigma clip
 │   ├── bls_detect.py    # BLS period search + phase-folding
 │   ├── vetting.py       # Odd-even / secondary / shape tests + classifier
+│   ├── features.py      # Layer 4: per-candidate feature engineering
+│   ├── scoring.py        # Layer 6: plausibility checks + confidence score
 │   └── main.py          # End-to-end pipeline runner
 ├── helper_scripts/      # Standalone utility scripts (see Conventions below)
 │   └── download/        #   Data download helpers

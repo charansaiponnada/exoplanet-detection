@@ -3,27 +3,38 @@ End-to-end exoplanet transit detection pipeline.
 
 Usage:
     Real data (run locally / Colab with MAST access):
-        python src/main.py --real "TIC 307210830"
+        uv run src/main.py --real "TIC 307210830"
 
     Synthetic validation run (works anywhere, no internet needed):
-        python src/main.py --synthetic planet
-        python src/main.py --synthetic eb        # injected eclipsing binary, tests vetting logic
+        uv run src/main.py --synthetic planet
+        uv run src/main.py --synthetic eb
+
+    Downloaded CSV file:
+        uv run src/main.py --csv data/tess/TIC_307210830_sector02.csv
 """
 
 import argparse
 import json
 import sys
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from data_io import load_real_target, make_synthetic_light_curve
 from detrend import detrend_flux, sigma_clip
 from bls_detect import run_bls, phase_fold
 from vetting import odd_even_test, secondary_eclipse_test, shape_test, classify_signal
+from features import extract_features
+from scoring import physical_plausibility, confidence_score
+from classifier import load_model, predict as ml_predict
+
+DEFAULT_MODEL_PATH = "models/candidate_classifier.joblib"
 
 
-def run_pipeline(time, flux, flux_err, label="target", truth=None, out_prefix="result"):
+def run_pipeline(time, flux, flux_err, label="target", truth=None, out_prefix="result",
+                  ml_model=None, return_figure=False):
     time, flux, flux_err = sigma_clip(time, flux, flux_err, sigma=5.0)
     flat_flux, trend = detrend_flux(time, flux, window_days=0.5)
 
@@ -36,11 +47,26 @@ def run_pipeline(time, flux, flux_err, label="target", truth=None, out_prefix="r
     shape = shape_test(phase, folded_flux, candidate["duration_hours"], candidate["period_days"])
     classification = classify_signal(oe, sec, shape)
 
+    features = extract_features(time, flat_flux, phase, folded_flux, candidate, oe, sec, shape)
+    plausibility = physical_plausibility(candidate, features)
+    confidence = confidence_score(candidate, features, classification, plausibility)
+
+    if ml_model is None:
+        try:
+            ml_model = load_model(DEFAULT_MODEL_PATH)
+        except FileNotFoundError:
+            ml_model = None
+    ml_classification = ml_predict(ml_model, features) if ml_model is not None else None
+
     results = {
         "target": label,
         "recovered_parameters": candidate,
         "vetting": {"odd_even": oe, "secondary_eclipse": sec, "shape": shape},
         "classification": classification,
+        "features": features,
+        "plausibility": plausibility,
+        "confidence": confidence,
+        "ml_classification": ml_classification,
     }
     if truth is not None:
         results["ground_truth"] = truth
@@ -89,10 +115,13 @@ def run_pipeline(time, flux, flux_err, label="target", truth=None, out_prefix="r
 
     plt.tight_layout()
     fig_path = f"{out_prefix}_{label.replace(' ', '_')}.png"
-    plt.savefig(fig_path, dpi=130)
-    plt.close(fig)
+    Path(fig_path).parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(fig_path, dpi=130)
     results["figure_path"] = fig_path
 
+    if return_figure:
+        return results, fig
+    plt.close(fig)
     return results
 
 
@@ -101,37 +130,58 @@ def main():
     parser.add_argument("--real", type=str, default=None, help='TIC ID, e.g. "TIC 307210830"')
     parser.add_argument("--synthetic", type=str, default=None, choices=["planet", "eb"],
                          help="Run on a synthetic injected signal instead of real data")
-    parser.add_argument("--out", type=str, default="/home/claude/exoplanet-pipeline/output")
+    parser.add_argument("--csv", type=str, default=None,
+                         help="Run on a downloaded CSV file (from helper_scripts/download)")
+    parser.add_argument("--out", type=str, default=None,
+                         help="Output prefix (default: output/<label>)")
     args = parser.parse_args()
 
-    if args.real:
-        df, meta = load_real_target(args.real)
+    if args.csv:
+        csv_path = Path(args.csv)
+        df = pd.read_csv(csv_path)
+        label = csv_path.stem
+        out_prefix = args.out or f"output/{label}"
         results = run_pipeline(df["time"].values, df["flux"].values, df["flux_err"].values,
-                                label=args.real, out_prefix=args.out)
+                                label=label, out_prefix=out_prefix)
+        results["source"] = str(csv_path)
+    elif args.real:
+        df, meta = load_real_target(args.real)
+        label = args.real
+        out_prefix = args.out or f"output/{label.replace(' ', '_')}"
+        results = run_pipeline(df["time"].values, df["flux"].values, df["flux_err"].values,
+                                label=label, out_prefix=out_prefix)
         results["source_meta"] = meta
     elif args.synthetic == "planet":
         df, truth = make_synthetic_light_curve(period_days=3.5, transit_depth_ppm=2500,
                                                  transit_duration_hours=2.5, seed=1)
+        out_prefix = args.out or "output/synthetic_planet"
         results = run_pipeline(df["time"].values, df["flux"].values, df["flux_err"].values,
-                                label="synthetic_planet", truth=truth, out_prefix=args.out)
+                                label="synthetic_planet", truth=truth, out_prefix=out_prefix)
     elif args.synthetic == "eb":
         df, truth = make_synthetic_light_curve(period_days=4.2, transit_depth_ppm=8000,
                                                  transit_duration_hours=3.0,
                                                  add_secondary_eclipse=True, secondary_depth_ppm=2500,
                                                  seed=2)
+        out_prefix = args.out or "output/synthetic_eclipsing_binary"
         results = run_pipeline(df["time"].values, df["flux"].values, df["flux_err"].values,
-                                label="synthetic_eclipsing_binary", truth=truth, out_prefix=args.out)
+                                label="synthetic_eclipsing_binary", truth=truth, out_prefix=out_prefix)
     else:
-        print("Specify --real \"TIC ...\" or --synthetic [planet|eb]")
+        print("Specify --real \"TIC ...\", --synthetic [planet|eb], or --csv <file.csv>")
         sys.exit(1)
 
-    results_path = f"{args.out}_{(args.real or args.synthetic).replace(' ', '_')}_results.json"
+    results_path = f"{out_prefix}_results.json"
+    Path(results_path).parent.mkdir(parents=True, exist_ok=True)
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
 
     print(json.dumps(results, indent=2, default=str))
     print(f"\nFigure saved to: {results['figure_path']}")
     print(f"Results saved to: {results_path}")
+    print(f"\nClassification: {results['classification']['label']}  |  "
+          f"Confidence: {results['confidence']['score']:.2f} ({results['confidence']['verdict']})")
+    if results["ml_classification"]:
+        print(f"ML classifier (Layer 5, interim): {results['ml_classification']['predicted_label']}  "
+              f"{results['ml_classification']['probabilities']}")
 
 
 if __name__ == "__main__":

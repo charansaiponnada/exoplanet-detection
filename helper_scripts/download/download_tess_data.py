@@ -64,7 +64,8 @@ def download_target(tic_id: str, sectors: int | None, data_dir: Path) -> dict:
     files = []
     for i in range(n_dl):
         row = search[i]
-        sector_num = row.description.split("Sector ")[-1].split(" ")[0] if "Sector" in row.description else f"idx{i}"
+        mission_str = str(row.mission[0] if hasattr(row.mission, "__len__") else row.mission)
+        sector_num = mission_str.split("Sector ")[-1].strip() if "Sector" in mission_str else f"idx{i}"
         print(f"Sector {sector_num}", end=" ")
         lc = row.download()
         lc = lc.remove_nans().remove_outliers(sigma=5)
@@ -78,7 +79,7 @@ def download_target(tic_id: str, sectors: int | None, data_dir: Path) -> dict:
         })
         df.to_csv(csv_path, index=False)
         files.append(str(csv_path))
-        print(f"→ {csv_path.name} ({lc.time.value.size} pts)", end=" ")
+        print(f" -> {csv_path.name} ({lc.time.value.size} pts)", end=" ")
 
     print()
     return {"tic_id": tic_id, "status": "downloaded", "files": files, "sectors_available": n_available}
