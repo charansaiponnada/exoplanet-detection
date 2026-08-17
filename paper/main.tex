@@ -79,7 +79,23 @@ used it to recover two previously missed planets. Subsequent work added input
 channels rather than changing the reasoning: \citet{Ansdell2018} supplied
 centroid time series and stellar parameters, and \exominer{}
 \citep{Valizadegan2022} added a branch per diagnostic test and validated 301 new
-planets. The same recipe was carried to TESS \citep{Yu2019, Osborn2020}.
+planets. The same recipe was carried to TESS \citep{Yu2019, Osborn2020}, and
+more recently attention has been introduced over the same two views, together
+with post-hoc temperature scaling, by \citet{Islam2026}.
+
+Two concurrent studies bear directly on the present work. \citet{Priyanshu2026}
+give the first application of conformal prediction to transit \emph{detection},
+using a self-supervised stellar world model to find single transits in raw flux
+and reporting empirical coverage of conformal prediction sets.
+\citet{Kopparapu2026} examine cross-instrument prioritisation over all
+train/test combinations of Kepler and TESS, and find that a model trained on one
+mission transfers poorly to the other, recommending joint training instead. We
+return to both in Section~\ref{sec:discussion}: our conformal contribution
+targets a different guarantee (false discovery rate over a selected list, rather
+than coverage of a prediction set) on a different task (vetting events of known
+period, rather than detecting single transits), and our cross-mission experiment
+is deliberately zero-shot, which is the setting \citet{Kopparapu2026} identify as
+difficult.
 
 Across this line of work the network is given the folded light curve
 \emph{at the period reported by the search} and asked to classify what it sees.
@@ -125,7 +141,11 @@ contributions.
       Benjamini--Hochberg procedure, produce a candidate list whose false
       discovery rate is controlled at a chosen level under an exchangeability
       assumption alone --- with no assumption that the network is well
-      calibrated or even accurate (Section~\ref{sec:conformal}).
+      calibrated or even accurate (Section~\ref{sec:conformal}). This controls
+      the quantity a follow-up programme actually spends its time on, namely the
+      fraction of the selected list that is not planetary, and is complementary
+      to the coverage guarantee reported for single-transit detection by
+      \citet{Priyanshu2026}.
 \item \textbf{An evaluation protocol that does not leak.} Multiple TCEs on the
       same star share a light curve, stellar properties and systematics.
       Splitting at the level of the TCE, as previous work has done, places such

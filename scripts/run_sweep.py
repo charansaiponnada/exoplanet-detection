@@ -24,7 +24,7 @@ import time
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 HEADLINE_SEEDS = [0, 1, 2, 3, 4]
-ABLATION_SEEDS = [0, 1, 2]
+ABLATION_SEEDS = [0, 1, 2, 3, 4]
 TCE_SPLIT_SEEDS = [0, 1, 2]
 
 # tag -> extra command line arguments

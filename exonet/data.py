@@ -136,13 +136,25 @@ def make_splits(
     raise ValueError(f"unknown split mode: {mode}")
 
 
+# Views are normalised so their minimum is -1.  When the normalising minimum is
+# small but an upward excursion (a flare, a cosmic ray residual, a discontinuity)
+# is large, the ratio explodes: a handful of views reach +300.  Clipping the
+# upper tail bounds those cases without touching real morphology, whose 99th
+# percentile is around +4.  Fewer than 2 per cent of events are affected and they
+# are almost all non-planetary.
+VIEW_CLIP_MAX = 10.0
+
+
 def load_h5(path: str, view_names: list[str] | None = None):
     """Read the processed HDF5 file into numpy arrays."""
     import h5py
 
     view_names = view_names or list(VIEW_TABLE.keys())
     with h5py.File(path, "r") as fh:
-        views = {n: fh[n][:].astype(np.float32) for n in view_names}
+        views = {
+            n: np.clip(fh[n][:].astype(np.float32), -1.0, VIEW_CLIP_MAX)
+            for n in view_names
+        }
         catalog = fh["catalog"][:].astype(np.float32)
         derived = fh["derived"][:].astype(np.float32)
         kepid = fh["kepid"][:]
