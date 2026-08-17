@@ -47,3 +47,35 @@ models/*.joblib
 # OS files
 Thumbs.db
 .DS_Store
+
+# ---------------------------------------------------------------------------
+# Bulk science data: regenerate with scripts/download_kepler.py,
+# scripts/download_tess.py and scripts/fetch_catalogs.sh rather than committing.
+# ---------------------------------------------------------------------------
+data/kepler/
+data/tess_lc/
+data/processed/
+*.fits
+
+# Catalogue snapshots are large and fetched from the NASA Exoplanet Archive
+data/catalogs/*.csv
+
+# Experiment artefacts
+logs/
+results/runs/
+*.pt
+*.npz
+*.h5
+
+# LaTeX build products
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

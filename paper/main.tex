@@ -1,0 +1,446 @@
+%% PHANTOM: physics-informed harmonic-attention transit vetting
+%% Prepared for Astronomy and Computing (Elsevier).  The manuscript is written
+%% against elsarticle; switching to mnras.cls requires only the preamble.
+\documentclass[preprint,12pt,authoryear]{elsarticle}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+
+\journal{Astronomy and Computing}
+
+\newcommand{\phantomnet}{\textsc{Phantom}}
+\newcommand{\astronet}{\textsc{AstroNet}}
+\newcommand{\exominer}{\textsc{ExoMiner}}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Harmonic attention and a differentiable transit model for
+       automated vetting of exoplanet candidates}
+
+\author[a]{Anonymous Author}
+\address[a]{Affiliation}
+
+\begin{abstract}
+%% Filled in once the final numbers are in; see RESULTS_PLACEHOLDER markers.
+\end{abstract}
+
+\begin{keyword}
+exoplanets \sep transit photometry \sep light curves \sep deep learning \sep
+conformal prediction \sep Kepler \sep TESS
+\end{keyword}
+
+\end{frontmatter}
+
+%% ===================================================================
+\section{Introduction}
+\label{sec:intro}
+
+The transit method has produced the large majority of known exoplanets, but the
+detections it yields are not planets: they are \emph{threshold-crossing events}
+(TCEs), periodic dimmings that survive a matched-filter search of a photometric
+time series. Most TCEs are not planetary. They arise from eclipsing binary
+stars, from the light of an eclipsing binary blended into the photometric
+aperture of an unrelated target, from stellar variability and starspots, and
+from instrumental systematics that happen to be periodic. The Kepler mission
+alone produced $\sim$$3.4\times10^{4}$ TCEs in its final data release, of which
+only a minority correspond to planets \citep{Thompson2018}. Deciding which is
+which --- \emph{vetting} --- is the bottleneck between a photometric survey and
+a planet catalogue.
+
+Vetting has traditionally been performed by a cascade of physically motivated
+diagnostic tests. If odd-numbered and even-numbered transits have different
+depths, the signal is probably an eclipsing binary detected at half its true
+period. If a shallower dimming appears near the opposite orbital phase, the
+companion is self-luminous and therefore stellar. If the flux-weighted centroid
+of the target shifts during the event, the light is being removed from a
+neighbouring source rather than from the target. If the profile is V-shaped
+rather than flat-bottomed, the eclipse is probably grazing. These tests are
+fast, interpretable, and were the basis of the Kepler Robovetter
+\citep{Thompson2018}. They are also brittle: each is a hand-tuned threshold on a
+statistic that degrades rapidly as the signal-to-noise ratio falls, and each
+fails in a characteristic way. The odd-even test, in particular, is defeated by
+exactly the situation it is meant to catch, because a binary detected at its
+half-period alias presents both eclipses as ``primary'' events.
+
+Deep learning changed the picture. \citet{Shallue2018} showed that a
+one-dimensional convolutional network applied to two fixed-length
+representations of the phase-folded light curve --- a whole-orbit ``global''
+view and a zoomed ``local'' view --- outperformed the hand-built cascade, and
+used it to recover two previously missed planets. Subsequent work added input
+channels rather than changing the reasoning: \citet{Ansdell2018} supplied
+centroid time series and stellar parameters, and \exominer{}
+\citep{Valizadegan2022} added a branch per diagnostic test and validated 301 new
+planets. The same recipe was carried to TESS \citep{Yu2019, Osborn2020}.
+
+Across this line of work the network is given the folded light curve
+\emph{at the period reported by the search} and asked to classify what it sees.
+That framing embeds an assumption which the classical tests explicitly do not
+make: that the reported period is the true period. It is precisely the failure
+of that assumption --- the half-period alias --- which produces the dominant
+astrophysical false positive. A network shown only the fold at $P$ can learn
+proxies for the alias, but it cannot examine the alternative hypothesis
+directly, because the evidence that distinguishes $P$ from $2P$ lives in a fold
+the network is never shown.
+
+A second gap concerns what the network outputs. Vetting produces a ranked list
+that consumes finite follow-up resources, so the operationally meaningful
+question is not ``what is the score of this candidate'' but ``if I observe
+everything on this list, what fraction of my time is wasted''. A softmax output
+does not answer that question: neural network probabilities are systematically
+miscalibrated \citep{Guo2017}, and calibration on one data set carries no
+guarantee on another. Nor do these classifiers estimate the physical parameters
+--- period, depth, duration --- that the survey exists to measure; those are
+taken from the upstream search and passed through unchanged.
+
+This paper addresses both gaps with a single architecture, \phantomnet{}
+(Physics-informed Harmonic-ATtention Object Model), and makes four
+contributions.
+
+\begin{enumerate}
+\item \textbf{Harmonic-hypothesis attention.} The light curve is rendered under
+      three competing period hypotheses --- $P/2$, $P$ and $2P$ --- alongside
+      the odd, even, secondary and centroid channels. A transformer encoder
+      attends over the resulting token set, and an explicit contrast head
+      compares the pooled evidence under each hypothesis. The network can
+      therefore test the alias hypothesis in the same way a human vetter does,
+      rather than inferring it indirectly (Section~\ref{sec:harmonic}).
+\item \textbf{A differentiable transit decoder.} A five-parameter analytic
+      transit model --- depth, half-duration, phase offset, limb darkening and
+      an ingress-softness term that interpolates continuously between a
+      flat-bottomed and a V-shaped profile --- is rendered onto the local view
+      and fitted by reconstruction, with no parameter supervision. The residual
+      becomes a classification feature, and the bottleneck yields transit
+      parameters as a by-product (Section~\ref{sec:decoder}).
+\item \textbf{Distribution-free candidate lists.} Conformal $p$-values computed
+      against held-out known non-planets, combined with the
+      Benjamini--Hochberg procedure, produce a candidate list whose false
+      discovery rate is controlled at a chosen level under an exchangeability
+      assumption alone --- with no assumption that the network is well
+      calibrated or even accurate (Section~\ref{sec:conformal}).
+\item \textbf{An evaluation protocol that does not leak.} Multiple TCEs on the
+      same star share a light curve, stellar properties and systematics.
+      Splitting at the level of the TCE, as previous work has done, places such
+      siblings on both sides of the train/test boundary. We report results under
+      a star-level split as our primary protocol and the TCE-level split for
+      comparability (Section~\ref{sec:splits}).
+\end{enumerate}
+
+%% ===================================================================
+\section{Data}
+\label{sec:data}
+
+\subsection{The Kepler DR24 threshold-crossing event set}
+
+We use the Kepler Q1--Q17 DR24 TCE catalogue hosted at the NASA Exoplanet
+Archive, which is the benchmark introduced by \citet{Shallue2018} and reused by
+\citet{Ansdell2018}. Of its 20{,}367 TCEs, 15{,}737 carry a disposition from the
+Autovetter training set \citep{McCauliff2015}:
+
+\begin{itemize}
+\item \textbf{PC} (planet candidate, 3{,}600 events) --- the positive class;
+\item \textbf{AFP} (astrophysical false positive, 9{,}596 events) --- eclipsing
+      binaries, blends and other genuine astrophysical signals that are not
+      planetary transits of the target;
+\item \textbf{NTP} (non-transiting phenomenon, 2{,}541 events) --- stellar
+      variability and instrumental artefacts.
+\end{itemize}
+
+These 15{,}737 events lie on 9{,}865 distinct stars. We treat PC as the positive
+class and $\{$AFP, NTP$\}$ as the negative class, following the convention of
+the prior work we compare against.
+
+Light curves are the long-cadence ($29.4$~min) PDCSAP photometry from the Kepler
+pipeline, retrieved for every quarter in which the target was observed. We
+retain cadences whose quality flag contains none of the bits indicating attitude
+tweaks, safe modes, coarse or Earth point, desaturation events, manual
+exclusions or detector anomalies.
+
+\subsection{The TESS cross-mission set}
+\label{sec:tessdata}
+
+To test whether the learned representation is specific to Kepler we assemble a
+zero-shot evaluation set from the TESS Objects of Interest catalogue
+\citep{Guerrero2021}. We keep TOIs whose TFOPWG disposition is unambiguous ---
+confirmed or known planets (CP, KP) as positives, false positives and false
+alarms (FP, FA) as negatives --- and which have a published epoch, period and
+duration. Photometry is the two-minute-cadence SPOC light curve, limited to the
+first four sectors available for each target; only cadences with a zero quality
+flag are kept, since the TESS quality bits differ from Kepler's.
+
+%% ===================================================================
+\section{From photometry to fixed-length views}
+\label{sec:preprocessing}
+
+\subsection{Detrending}
+
+Stellar variability and residual instrumental trends exceed a planetary transit
+in amplitude by orders of magnitude, so each light curve is flattened before
+folding. Following \citet{Vanderburg2014} and \citet{Shallue2018} we divide each
+contiguous segment --- data separated by gaps longer than $0.75$~d are treated
+as separate segments --- by a cubic basis spline fitted with iterative
+$3\sigma$ outlier rejection.
+
+Two details matter. First, the knot spacing is not fixed: it is selected per
+target from a logarithmic grid spanning $0.5$ to $20$~d by minimising the
+Bayesian Information Criterion summed over all segments, so that a rapidly
+rotating star and a photometrically quiet one are treated differently. Second,
+the cadences within $1.5$ transit durations of \emph{any} TCE on the target are
+excluded from the spline fit, though the fitted spline is still evaluated at
+those cadences. Without this mask the spline partially absorbs the very signal
+being measured, biasing depths low.
+
+The centroid time series are detrended in the same way and with the same knot
+spacing, so that only excursions coincident with an event survive.
+
+\subsection{Views}
+\label{sec:views}
+
+For each TCE, cadences falling within $1.5$ durations of a \emph{different} TCE
+on the same star are removed, and the remainder is folded on the reported
+ephemeris. Nine fixed-length views are then rendered by median-binning
+(Table~\ref{tab:views}). Each is centred on its median and divided by the
+absolute value of its minimum, so that the deepest bin sits at $-1$; the divisor
+is retained as a scalar, which is what allows an absolute depth to be recovered
+from the normalised view in Section~\ref{sec:decoder}.
+
+\begin{table}[t]
+\centering
+\caption{The nine input views. The period hypothesis column indicates which
+         trial period the view is folded on; these labels are supplied to the
+         network as embeddings.}
+\label{tab:views}
+\begin{tabular}{llcl}
+\toprule
+View & Bins & Hypothesis & Purpose \\
+\midrule
+Global       & 2001 & $P$   & whole-orbit morphology \\
+Local        & 201  & $P$   & transit shape \\
+Odd          & 201  & $P$   & depth on odd epochs \\
+Even         & 201  & $P$   & depth on even epochs \\
+Secondary    & 201  & $P$   & occultation by a luminous companion \\
+Harmonic     & 201  & $P/2$ & is the true period half of the reported one? \\
+Harmonic     & 2001 & $2P$  & does the fold separate into unequal eclipses? \\
+Centroid (global) & 2001 & $P$ & photocentre motion, whole orbit \\
+Centroid (local)  & 201  & $P$ & photocentre motion during the event \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two harmonic views are the novel channels. Folding at $2P$ maps alternating
+eclipses of a binary onto \emph{distinct} phases, so a depth difference that the
+odd-even test must infer from two interleaved subsets becomes directly visible
+as two separated dimmings of unequal depth. Folding at $P/2$ tests the opposite
+hypothesis: if the true period is half the reported one, that fold sharpens the
+event instead of smearing it.
+
+The local, odd, even and secondary views span $\pm4$ transit durations. The
+secondary view is centred by re-folding about the epoch of the deepest
+out-of-primary bin, rather than by windowing inside the primary fold, so that
+the window remains fully populated when the secondary lies near phase $\pm0.5$.
+
+\subsection{Scalar features}
+
+Alongside the views the network receives scalar features in four groups:
+\emph{transit} (period, duration, depth, model signal-to-noise, multiple event
+statistic, number of transits, impact parameter, radius and semi-major axis
+ratios), \emph{stellar} (effective temperature, surface gravity, metallicity,
+inferred planet radius), \emph{diagnostic} (the pipeline's odd-even and centroid
+offset statistics and robust fit statistic), and \emph{derived} --- eleven
+quantities measured here from the detrended light curve, including the odd-even
+depth asymmetry, the secondary depth ratio, the selected knot spacing, the
+out-of-transit scatter, the normalisation scale, and a red-noise proxy formed
+from the ratio of the scatter of six-hour bins to the white-noise expectation.
+The derived group is the only one computable identically for both missions and
+is therefore the configuration used for the cross-mission experiment.
+Features spanning orders of magnitude are log-compressed, missing values are
+imputed to the training-split median, and all are standardised with
+training-split statistics.
+
+%% ===================================================================
+\section{The \phantomnet{} architecture}
+\label{sec:model}
+
+\phantomnet{} has three parts: a per-view convolutional encoder, a harmonic
+attention block over the resulting tokens, and a differentiable transit decoder.
+
+\subsection{View encoders}
+
+Each view is encoded by a stack of pre-activation residual blocks with
+GroupNorm, interleaved with strided max-pooling --- five stages for the 2001-bin
+views and three for the 201-bin views. The final feature map is reduced by
+concatenated mean and max pooling, capturing respectively the average level and
+the depth of the deepest excursion, and projected to a token of dimension
+$d=256$. Views of equal length share an architecture but not weights, since a
+centroid view and a flux view carry different meaning.
+
+\subsection{Harmonic-hypothesis attention}
+\label{sec:harmonic}
+
+Each token receives two additive embeddings: a view-type embedding and a
+\emph{period-hypothesis} embedding drawn from $\{P/2,\,P,\,2P\}$. A learnable
+classification token is prepended and the sequence is processed by a
+pre-norm transformer encoder \citep{Vaswani2017} of three layers and eight
+heads.
+
+Attention alone leaves the harmonic comparison implicit, so we add an explicit
+contrast. Writing $h_{P/2}$, $h_{P}$ and $h_{2P}$ for the mean of the encoded
+tokens under each hypothesis, the contrast vector
+\begin{equation}
+c = \big[\,h_{P}\ \|\ h_{P}-h_{P/2}\ \|\ h_{P}-h_{2P}\ \|\ |h_{P}-h_{2P}|\,\big]
+\label{eq:contrast}
+\end{equation}
+is passed through a single hidden layer and concatenated into the classifier
+input. The difference terms state directly whether the evidence prefers the
+reported period over its harmonics; the absolute-value term makes the comparison
+insensitive to the sign of the discrepancy, which is what the eclipsing-binary
+hypothesis requires.
+
+\subsection{Differentiable transit decoder}
+\label{sec:decoder}
+
+Let $x$ index the local-view grid in units of transit durations from
+mid-transit. From the encoded local-view token an affine head predicts five
+bounded parameters: depth $\delta>0$, half-duration $T\in(0.05,2)$, phase offset
+$x_0\in(-0.5,0.5)$, limb-darkening strength $u\in(0,1)$ and ingress softness
+$s\in(0.02,1)$. With $z = |x-x_0|/T$ the model light curve is
+\begin{equation}
+\hat{f}(x) = -\,\delta\;
+  \underbrace{\sigma\!\left(\frac{1-z}{s}\right)}_{\text{in-transit indicator}}\;
+  \underbrace{\Big[1-u\big(1-\sqrt{\max(1-z^{2},0)}\big)\Big]}_{\text{limb darkening}},
+\label{eq:render}
+\end{equation}
+where $\sigma$ is the logistic function. Equation~\ref{eq:render} is analytic and
+differentiable in all five parameters, so it can be trained by backpropagation
+through a reconstruction loss against the observed local view.
+
+The softness $s$ is the physically interesting parameter. As $s\to0$ the
+indicator approaches a step and the profile becomes flat-bottomed, the signature
+of a small opaque body crossing the stellar disc. As $s$ grows the ingress and
+egress ramps broaden until the profile is V-shaped, the signature of a grazing
+or blended stellar eclipse. A single scalar therefore expresses the U-versus-V
+distinction that the classical shape test tries to capture with a ratio of
+widths, but it is fitted jointly with depth, duration and limb darkening rather
+than measured on a noisy curve in isolation.
+
+Two quantities derived from the fit enter the classifier: the root-mean-square
+reconstruction residual and its maximum absolute value. A genuine transit is
+well described by Equation~\ref{eq:render}; a stellar eclipse or an instrumental
+artefact is not, and the residual records that mismatch.
+
+Critically, the five parameters are \emph{not} regressed against catalogue
+values. Supervising them would teach the network to reproduce the pipeline fit
+against which it is later compared, making any parameter-recovery result
+circular. They are identified by reconstruction alone.
+
+\subsection{Objective}
+
+The training objective is
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\mathrm{BCE}}(\hat{y}, y)
+  \;+\; \lambda\,\big\| \hat{f} - f_{\mathrm{local}} \big\|_2^2 ,
+\label{eq:loss}
+\end{equation}
+with $\lambda=5$. Networks are optimised with AdamW \citep{Loshchilov2019} under
+a one-cycle schedule, batch size 128, gradient clipping at norm 5, and early
+stopping on validation average precision. Views are randomly mirrored about
+mid-transit during training, which is a valid symmetry of a transit profile.
+
+%% ===================================================================
+\section{Evaluation protocol}
+\label{sec:protocol}
+
+\subsection{Splits}
+\label{sec:splits}
+
+Our primary protocol splits $80/10/10$ into training, validation and test sets
+\emph{by star}: every TCE on a given target falls in exactly one fold. Multiple
+TCEs on one star share a light curve, the same detrending solution, the same
+stellar parameters and the same instrumental systematics, so a TCE-level split
+places near-duplicates on both sides of the boundary and inflates test scores.
+Because previous work reports the TCE-level split, we also report it, so that
+the comparison to published numbers is like-for-like and the size of the leakage
+is itself measurable.
+
+\subsection{Metrics}
+
+We report the area under the ROC curve, average precision (the area under the
+precision-recall curve), and precision at fixed recall. The last is the
+operational quantity: a vetting pipeline is run at high recall so as not to
+discard planets, and is then judged by how much follow-up effort the surviving
+false positives consume. All figures are averaged over five random seeds and
+reported with their standard deviation; ensembles average the per-seed
+probabilities.
+
+\subsection{Distribution-free candidate selection}
+\label{sec:conformal}
+
+Let $s$ denote the model score. Treating ``this event is not a planet'' as the
+null hypothesis, and given $n$ scores $s_1,\dots,s_n$ of \emph{known
+non-planets} from the held-out validation split, the conformal $p$-value of a
+test event with score $s$ is
+\begin{equation}
+p = \frac{1 + \#\{i : s_i \ge s\}}{n+1} .
+\label{eq:pvalue}
+\end{equation}
+Applying the Benjamini--Hochberg procedure \citep{Benjamini1995} at level $q$ to
+these $p$-values yields a candidate list whose false discovery rate is
+controlled at $q$ \citep{Bates2023}. The guarantee is finite-sample and
+distribution-free: it requires only that calibration and test events be
+exchangeable, and holds regardless of whether the network is well specified or
+well calibrated. For comparison we also report the expected calibration error
+before and after temperature scaling \citep{Guo2017}.
+
+\subsection{Transit parameter recovery}
+
+The decoder bottleneck is converted to physical units by
+$\delta_{\mathrm{ppm}} = \delta\,\kappa\times10^{6}$, where $\kappa$ is the
+normalisation scale divided out of the local view, and
+$T_{\mathrm{dur}} = 2T\,T_{\mathrm{cat}}$, where $T_{\mathrm{cat}}$ is the
+catalogue duration defining the grid. Uncertainties are the standard deviation
+across ensemble members \citep{Lakshminarayanan2017}.
+
+These estimates are compared against transit parameters from the NASA Exoplanet
+Archive's composite planetary parameters table --- that is, against published
+follow-up analyses rather than against the Kepler pipeline whose fit is being
+assessed. The comparison is therefore between two independent estimates of the
+same physical quantity: the pipeline value that seeded the search, and the value
+recovered here.
+
+%% ===================================================================
+\section{Results}
+\label{sec:results}
+
+%% RESULTS_PLACEHOLDER
+
+%% ===================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+%% DISCUSSION_PLACEHOLDER
+
+%% ===================================================================
+\section{Conclusions}
+\label{sec:conclusions}
+
+%% CONCLUSIONS_PLACEHOLDER
+
+\section*{Data availability}
+
+All photometry and catalogues used here are public: Kepler and TESS light curves
+from the Mikulski Archive for Space Telescopes, and the DR24 TCE, cumulative KOI,
+TOI and composite planetary parameter tables from the NASA Exoplanet Archive.
+Code to reproduce every figure and table is released with this paper.
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{references}
+
+\end{document}
