@@ -106,12 +106,32 @@ def main() -> int:
     ap.add_argument("--epochs", type=int, default=50)
     ap.add_argument("--log-dir", default="logs/runs")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--run-dir", default="results/runs")
+    ap.add_argument("--force", action="store_true",
+                    help="re-run jobs whose results already exist")
     ap.add_argument("--only", default="", help="substring filter on job names")
     args = ap.parse_args()
 
     jobs = build_jobs(args.data, args.epochs)
     if args.only:
         jobs = [j for j in jobs if args.only in j[0]]
+
+    # Resume support: a run whose result file already exists is skipped, so the
+    # sweep can be restarted after a reboot without repeating finished work.
+    if not args.force:
+        pending = []
+        for name, cmd in jobs:
+            tag = cmd[cmd.index("--tag") + 1]
+            seed = cmd[cmd.index("--seed") + 1]
+            split = cmd[cmd.index("--split-mode") + 1] if "--split-mode" in cmd else "group"
+            done_path = os.path.join(args.run_dir, f"{tag}_seed{seed}_{split}.json")
+            if not os.path.exists(done_path):
+                pending.append((name, cmd))
+        skipped = len(jobs) - len(pending)
+        if skipped:
+            print(f"skipping {skipped} already-completed runs", flush=True)
+        jobs = pending
+
     print(f"{len(jobs)} jobs", flush=True)
     if args.dry_run:
         for name, cmd in jobs:
