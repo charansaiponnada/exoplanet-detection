@@ -1,0 +1,35 @@
+{
+  "models": {
+    "phantom": {
+      "tag": "phantom_derived_only",
+      "n_members": 5,
+      "scalar_groups": [
+        "derived"
+      ],
+      "auc": 0.7514702288713588,
+      "ap": 0.7885054451379427,
+      "accuracy": 0.6843896214376861,
+      "precision": 0.7002881844380403,
+      "recall": 0.74884437596302,
+      "precision_at_recall_90": 0.6194503171247357,
+      "precision_at_recall_95": 0.573953488372093,
+      "precision_at_recall_99": 0.553832902670112
+    },
+    "astronet": {
+      "tag": "astronet",
+      "n_members": 5,
+      "scalar_groups": [],
+      "auc": 0.7671627911740906,
+      "ap": 0.7971887254137768,
+      "accuracy": 0.7201190982560612,
+      "precision": 0.7787456445993032,
+      "recall": 0.6887519260400616,
+      "precision_at_recall_90": 0.6001026694045175,
+      "precision_at_recall_95": 0.5798872180451128,
+      "precision_at_recall_99": 0.5551724137931034
+    }
+  },
+  "n_events": 2351,
+  "n_planets": 1298,
+  "chance_rate": 0.5521054863929749
+}

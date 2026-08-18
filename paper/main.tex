@@ -23,14 +23,48 @@
 
 \begin{frontmatter}
 
-\title{Harmonic attention and a differentiable transit model for
-       automated vetting of exoplanet candidates}
+\title{Multi-channel neural vetting of exoplanet transit candidates:
+       controlled ablations and distribution-free candidate selection}
 
-\author[a]{Anonymous Author}
-\address[a]{Affiliation}
+%% TODO: replace with the author list and affiliations before submission.
+\author[a]{FIRSTNAME LASTNAME}
+\ead{EMAIL@INSTITUTION}
+\address[a]{DEPARTMENT, INSTITUTION, CITY, COUNTRY}
 
 \begin{abstract}
-%% Filled in once the final numbers are in; see RESULTS_PLACEHOLDER markers.
+Transit surveys produce far more threshold-crossing events than planets, and
+deciding which is which is the bottleneck between photometry and a planet
+catalogue. We present \phantomnet{}, a vetting network that views each candidate
+through nine phase-folded representations --- global and local flux, odd and
+even epochs, the secondary phase, two centroid channels, and folds at the
+competing period hypotheses $P/2$ and $2P$ --- combined by a transformer over
+per-view tokens, together with a differentiable five-parameter transit model
+fitted by reconstruction alone. On the 15{,}683 labelled Kepler DR24
+threshold-crossing events, \phantomnet{} reaches an average precision of
+$0.9732 \pm 0.0097$ against $0.9385 \pm 0.0093$ for a faithfully reimplemented
+\astronet{} trained on identical splits ($p = 4\times10^{-4}$, five seeds), and
+raises precision at $95$ per cent recall from $0.805$ to $0.927$ --- a
+$62$ per cent reduction in the follow-up effort wasted on false positives.
+
+We then subject the architecture to controlled ablation, and report two negative
+results that we believe are more useful than the headline. First, no individual
+component is responsible for the gain: removing the harmonic contrast head, the
+harmonic views, the differentiable decoder, the centroid channels or the
+catalogue diagnostics each costs at most $0.007$ in average precision, and not
+one of the eight ablations is statistically significant. The advantage is
+collective and redundant, and single-component ablations therefore systematically
+understate it. Second, splitting the data by threshold-crossing event rather than
+by host star --- a protocol we expected to leak --- changes performance by
+$0.0002$ ($p = 0.97$). We further show that gradient-boosted trees on summary
+statistics match \phantomnet{} on average precision ($0.9754 \pm 0.0056$) while
+falling well short of it at high recall, that conformal $p$-values with
+Benjamini--Hochberg selection control the false discovery rate of the candidate
+list for target rates above about $5$ per cent but not below, that the
+unsupervised decoder recovers transit durations and depths to $3.2$ and $6.5$ per
+cent of published values without ever seeing a parameter label, and that
+zero-shot transfer to $2{,}351$ TESS objects of interest degrades to an average
+precision of $0.79$ for both \phantomnet{} and \astronet{}, corroborating recent
+reports that cross-mission generalisation is not obtained for free.
 \end{abstract}
 
 \begin{keyword}
@@ -117,42 +151,52 @@ guarantee on another. Nor do these classifiers estimate the physical parameters
 --- period, depth, duration --- that the survey exists to measure; those are
 taken from the upstream search and passed through unchanged.
 
-This paper addresses both gaps with a single architecture, \phantomnet{}
-(Physics-informed Harmonic-ATtention Object Model), and makes four
-contributions.
+This paper presents \phantomnet{}, a vetting network built around those two
+gaps, and --- more importantly --- a controlled study of which of its parts
+actually earn their place. Our contributions are as follows.
 
 \begin{enumerate}
-\item \textbf{Harmonic-hypothesis attention.} The light curve is rendered under
-      three competing period hypotheses --- $P/2$, $P$ and $2P$ --- alongside
-      the odd, even, secondary and centroid channels. A transformer encoder
-      attends over the resulting token set, and an explicit contrast head
-      compares the pooled evidence under each hypothesis. The network can
-      therefore test the alias hypothesis in the same way a human vetter does,
-      rather than inferring it indirectly (Section~\ref{sec:harmonic}).
+\item \textbf{A multi-channel vetting architecture.} Nine phase-folded views,
+      including folds at the competing period hypotheses $P/2$ and $2P$, are
+      encoded independently and combined by a transformer over per-view tokens
+      carrying view-type and period-hypothesis embeddings
+      (Section~\ref{sec:harmonic}). On the standard Kepler DR24 benchmark this
+      improves average precision over a faithfully reimplemented \astronet{} by
+      $0.035$ at matched training budget and slightly \emph{lower} parameter
+      count, and cuts the false-positive content of a $95$ per cent recall
+      candidate list by $62$ per cent.
 \item \textbf{A differentiable transit decoder.} A five-parameter analytic
-      transit model --- depth, half-duration, phase offset, limb darkening and
-      an ingress-softness term that interpolates continuously between a
-      flat-bottomed and a V-shaped profile --- is rendered onto the local view
-      and fitted by reconstruction, with no parameter supervision. The residual
-      becomes a classification feature, and the bottleneck yields transit
-      parameters as a by-product (Section~\ref{sec:decoder}).
+      transit model is rendered onto the local view and fitted by reconstruction
+      with no parameter supervision (Section~\ref{sec:decoder}). Its bottleneck
+      is directly interpretable: the ingress-softness term separates
+      flat-bottomed planetary profiles from V-shaped stellar eclipses, and the
+      fitted depths and durations agree with published values to $6.5$ and
+      $3.2$ per cent respectively without ever seeing a parameter label.
 \item \textbf{Distribution-free candidate lists.} Conformal $p$-values computed
       against held-out known non-planets, combined with the
-      Benjamini--Hochberg procedure, produce a candidate list whose false
+      Benjamini--Hochberg procedure, target a candidate list whose false
       discovery rate is controlled at a chosen level under an exchangeability
-      assumption alone --- with no assumption that the network is well
-      calibrated or even accurate (Section~\ref{sec:conformal}). This controls
-      the quantity a follow-up programme actually spends its time on, namely the
-      fraction of the selected list that is not planetary, and is complementary
-      to the coverage guarantee reported for single-transit detection by
-      \citet{Priyanshu2026}.
-\item \textbf{An evaluation protocol that does not leak.} Multiple TCEs on the
-      same star share a light curve, stellar properties and systematics.
-      Splitting at the level of the TCE, as previous work has done, places such
-      siblings on both sides of the train/test boundary. We report results under
-      a star-level split as our primary protocol and the TCE-level split for
-      comparability (Section~\ref{sec:splits}).
+      assumption alone (Section~\ref{sec:conformal}). We verify empirically
+      where this works and where it fails.
+\item \textbf{Two negative results.} We ablate every component over five seeds
+      and find that \emph{none} of them individually accounts for the gain: the
+      largest single effect is $0.007$ in average precision and no ablation
+      reaches significance. We also find that the star-level split we adopted to
+      prevent leakage makes no measurable difference relative to the
+      event-level split used by earlier work. We report both in full, because a
+      field that publishes only the components that worked will keep
+      re-discovering the ones that did not.
 \end{enumerate}
+
+We regard the second pair as the more useful contribution. Individually
+plausible physical priors --- harmonic folds, an explicit alias contrast, a
+differentiable transit model, centroid channels --- are each individually
+dispensable here, because the evidence they carry is largely redundant with what
+the remaining channels already supply. That is a property of the problem rather
+than of any one implementation, and it has a direct methodological consequence:
+one-component-at-a-time ablation, the standard instrument for attributing credit
+in this literature, systematically understates the value of a redundant
+ensemble of evidence.
 
 %% ===================================================================
 \section{Data}
@@ -174,7 +218,10 @@ Autovetter training set \citep{McCauliff2015}:
       variability and instrumental artefacts.
 \end{itemize}
 
-These 15{,}737 events lie on 9{,}865 distinct stars. We treat PC as the positive
+These 15{,}737 events lie on 9{,}865 distinct stars; 15{,}683 of them survive
+preprocessing (Section~\ref{sec:preprocessing}) and constitute the working set.
+Figure~\ref{fig:views} shows the nine input channels for one event of each
+class. We treat PC as the positive
 class and $\{$AFP, NTP$\}$ as the negative class, following the convention of
 the prior work we compare against.
 
@@ -266,6 +313,16 @@ The local, odd, even and secondary views span $\pm4$ transit durations. The
 secondary view is centred by re-folding about the epoch of the deepest
 out-of-primary bin, rather than by windowing inside the primary fold, so that
 the window remains fully populated when the secondary lies near phase $\pm0.5$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_views.pdf}
+\caption{The nine input channels for a planet candidate (PC), an astrophysical
+false positive (AFP) and a non-transiting phenomenon (NTP). The planet shows a
+flat-bottomed transit with matched odd and even depths and a featureless
+secondary phase; folding it at $2P$ correctly separates alternate transits.}
+\label{fig:views}
+\end{figure}
 
 \subsection{Scalar features}
 
@@ -439,19 +496,391 @@ recovered here.
 \section{Results}
 \label{sec:results}
 
-%% RESULTS_PLACEHOLDER
+All numbers are test-set values on the star-level split, averaged over five
+random seeds and quoted with their standard deviation; significance is assessed
+with Welch's $t$-test on the per-seed values.
+
+\subsection{Comparison with baselines}
+\label{sec:comparison}
+
+Table~\ref{tab:main} gives the headline comparison. \phantomnet{} improves
+average precision over \astronet{} by $0.0347$ ($t = 5.75$, $p = 4.3\times
+10^{-4}$) while using slightly fewer parameters ($9.16$M against $10.55$M), so
+the difference is attributable to the architecture and the input channels rather
+than to capacity. The reimplemented \astronet{} reaches AUC $0.9825$ here; the
+originally published value is $0.988$, and the small shortfall is expected given
+that our preprocessing chain, quality masking and split protocol differ in
+detail from the original.
+
+\begin{table}[t]
+\centering
+\caption{Test-set performance on the 15{,}683 labelled Kepler DR24
+threshold-crossing events, star-level split, five seeds. P@R denotes precision
+at the stated recall.}
+\label{tab:main}
+\begin{tabular}{lccccc}
+\toprule
+Model & Params & AUC & AP & P@R$=0.90$ & P@R$=0.95$ \\
+\midrule
+Classical cascade  & --      & $0.7668 \pm 0.0162$ & $0.4017 \pm 0.0193$ & $0.271$ & $0.271$ \\
+\astronet{}        & 10.55\,M & $0.9825 \pm 0.0028$ & $0.9385 \pm 0.0093$ & $0.868$ & $0.805$ \\
+GBDT (scalars)     & --      & $0.9923 \pm 0.0025$ & $\mathbf{0.9754 \pm 0.0056}$ & $0.939$ & $0.902$ \\
+\phantomnet{}      & 9.16\,M  & $\mathbf{0.9929 \pm 0.0027}$ & $0.9732 \pm 0.0097$ & $\mathbf{0.962}$ & $\mathbf{0.927}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The operationally meaningful comparison is the last column. A vetting pipeline
+is run at high recall so as not to discard planets, and is then judged by the
+follow-up effort its false positives consume. At $95$ per cent recall the
+\astronet{} candidate list is $19.5$ per cent false positives and the
+\phantomnet{} list is $7.3$ per cent, a reduction of $62$ per cent in wasted
+effort. Figure~\ref{fig:prroc} shows the full precision-recall and ROC curves.
+
+Two baseline results deserve emphasis. The classical cascade --- the odd-even,
+secondary-eclipse and V-shape tests, implemented carefully and with the
+look-elsewhere correction that the secondary test requires --- reaches an
+average precision of only $0.40$. Its individual tests are nonetheless sharply
+diagnostic: the corrected secondary test fires on $34$ per cent of astrophysical
+false positives and $1$ per cent of planet candidates. The gap between sharp
+individual tests and poor aggregate performance is precisely the gap that
+learned combination closes.
+
+More surprisingly, gradient-boosted trees on the scalar feature vector match
+\phantomnet{} on average precision ($0.9754$ versus $0.9732$, $p = 0.67$) and
+beat \astronet{} comfortably, despite never seeing a light curve. The scalar
+vector includes the pipeline's own data-validation diagnostics, which encode a
+great deal of the vetting problem already. The tree nevertheless falls behind at
+high recall ($0.902$ against $0.927$ at $95$ per cent recall), which is where a
+survey operates. Any claim that a deep model is necessary for this task must
+clear this baseline, and we would encourage its inclusion in future work.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig2_pr_roc.pdf}
+\caption{Precision-recall and ROC curves on the held-out test set. The ROC
+abscissa is logarithmic to resolve the low-false-positive regime.}
+\label{fig:prroc}
+\end{figure}
+
+\subsection{The split protocol makes no difference}
+\label{sec:splitresult}
+
+We adopted a star-level split on the expectation that multiple TCEs on one star
+--- sharing a light curve, a detrending solution, stellar parameters and
+systematics --- would leak between folds under the event-level split used by
+earlier work. They do not. \phantomnet{} scores $0.9732 \pm 0.0097$ under the
+star-level split and $0.9734 \pm 0.0059$ under the event-level split
+($p = 0.97$); \astronet{} scores $0.9385$ and $0.9315$ ($p = 0.19$). The effect
+is consistent with zero for both models.
+
+This is not because sharing is rare. $65.1$ per cent of the labelled events sit
+on a star carrying at least one other labelled event, and $44.3$ per cent of the
+stars host more than one. The explanation must therefore be that sibling events
+are not near-duplicates of each other. They are typically dissimilar signals ---
+a genuine transit alongside a systematic at an unrelated period, with different
+depths, durations and shapes --- so knowing the label of one conveys little
+about the other beyond the shared stellar and instrumental context, which is
+apparently not what the classifier keys on.
+
+We continue to recommend the star-level split on principle, since its cost is
+nil and the argument for it does not depend on the size of the effect. But we
+can report that published results using the event-level split are not measurably
+inflated by it, and that the leakage concern, at least on this benchmark, is
+unfounded.
+
+\subsection{Ablations: no component is individually responsible}
+\label{sec:ablation}
+
+Table~\ref{tab:ablation} removes each component in turn. The result is
+unambiguous and, to us, unexpected: \emph{not one of the eight ablations is
+statistically significant}, and the largest single effect is $0.0072$ in average
+precision.
+
+\begin{table}[t]
+\centering
+\caption{Component ablations, five seeds each, star-level split. $\Delta$AP is
+the full model minus the ablated model, so positive values indicate a component
+that helps. No row is significant at the $5$ per cent level.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Configuration & AP & $\Delta$AP & $p$ \\
+\midrule
+\phantomnet{} (full)                & $0.9732 \pm 0.0097$ & --       & --    \\
+$-$ harmonic contrast head          & $0.9738 \pm 0.0065$ & $-0.0007$ & 0.90 \\
+$-$ harmonic views ($P/2$, $2P$)    & $0.9702 \pm 0.0119$ & $+0.0030$ & 0.68 \\
+$-$ differentiable decoder          & $0.9690 \pm 0.0061$ & $+0.0042$ & 0.44 \\
+$-$ catalogue diagnostics           & $0.9670 \pm 0.0095$ & $+0.0062$ & 0.34 \\
+$-$ centroid views                  & $0.9660 \pm 0.0109$ & $+0.0072$ & 0.31 \\
+global and local views only         & $0.9627 \pm 0.0117$ & $+0.0104$ & 0.16 \\
+light-curve-derived scalars only    & $0.9621 \pm 0.0113$ & $+0.0110$ & 0.14 \\
+no scalar inputs                    & $0.9610 \pm 0.0168$ & $+0.0121$ & 0.21 \\
+\midrule
+\astronet{} (different architecture) & $0.9385 \pm 0.0093$ & $+0.0347$ & $4\times10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig3_ablation.pdf}
+\caption{Component ablations with five-seed error bars. The overlap of every
+interval with the full model is the central negative result of this study.}
+\label{fig:ablation}
+\end{figure}
+
+The pattern is nonetheless orderly. Effects grow monotonically as more evidence
+is withdrawn: removing one channel costs little, removing all the extra channels
+costs $0.0104$, removing all scalars costs $0.0121$, and only when the
+architecture is changed as well does the full $0.0347$ gap to \astronet{} open
+up. The components are individually dispensable and collectively necessary,
+which is the signature of redundant evidence. A grazing eclipsing binary, for
+instance, betrays itself in the V-shaped local profile, in the decoder's
+ingress-softness parameter, in the odd-even depth ratio and in the $2P$ fold;
+deleting any one leaves the other three.
+
+This has a methodological consequence worth stating plainly. Leave-one-out
+ablation is the standard instrument for attributing credit in this literature,
+and under redundancy it is close to uninformative --- it will report that
+nothing matters even when the ensemble of components clearly does. The
+comparison that carries information is the nested sequence, not the individual
+deletion.
+
+\subsection{Calibration and distribution-free candidate selection}
+\label{sec:conformalresult}
+
+A five-member ensemble on a fixed split improves average precision by $0.0028$
+and precision at $95$ per cent recall by $0.0113$ over its individual members,
+and reduces the expected calibration error from $0.0142$ to $0.0120$ under
+temperature scaling ($T = 1.12$). The network is already close to calibrated
+before scaling, which is not typical of deep classifiers \citep{Guo2017} and
+which we attribute to the modest capacity and strong augmentation.
+
+Calibration, however, is a statement about average agreement, not a guarantee.
+Table~\ref{tab:conformal} reports the realised false discovery rate of the
+conformal selection of Section~\ref{sec:conformal} against its nominal target.
+For targets of $5$ per cent and above the procedure behaves as advertised: at
+$q=0.10$ it selects $389$ candidates with a realised FDR of $0.090$ and $96.7$
+per cent recall, and at $q = 0.20$ it realises $0.194$. Below $5$ per cent it
+does not: at $q = 0.01$ the realised rate is $0.033$, more than three times
+nominal.
+
+\begin{table}[t]
+\centering
+\caption{Conformal candidate selection with Benjamini--Hochberg at level $q$,
+calibrated on the validation-split negatives. Control holds for
+$q \gtrsim 0.05$ and fails below it.}
+\label{tab:conformal}
+\begin{tabular}{lccc}
+\toprule
+Target $q$ & Selected & Realised FDR & Recall \\
+\midrule
+0.01 & 181 & 0.033 & 0.478 \\
+0.02 & 290 & 0.034 & 0.765 \\
+0.05 & 353 & 0.057 & 0.910 \\
+0.10 & 389 & 0.090 & 0.967 \\
+0.20 & 449 & 0.194 & 0.989 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The failure is expected rather than anomalous, and has two causes. The
+calibration set contains roughly $1{,}200$ negatives, so the smallest attainable
+conformal $p$-value is $\sim$$8\times10^{-4}$ and the discrete $p$-value grid is
+coarse exactly where small $q$ needs resolution. More fundamentally, conformal
+$p$-values computed against a shared calibration set are mutually dependent, and
+Benjamini--Hochberg controls the false discovery rate under such dependence only
+asymptotically unless the conditional-calibration variant of \citet{Bates2023} is
+used. Practitioners wanting guarantees at the one-per-cent level should enlarge
+the calibration set or adopt that variant; at the five-to-twenty per cent level
+that a follow-up programme actually operates in, the simple procedure is
+adequate.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig5_conformal_calibration.pdf}
+\caption{(a) Realised against nominal false discovery rate for the conformal
+selection; control holds above $q \simeq 0.05$ and fails below it. (b)
+Reliability diagram before and after temperature scaling.}
+\label{fig:conformal}
+\end{figure}
+
+\subsection{Transit parameters from an unsupervised decoder}
+\label{sec:paramresult}
+
+The decoder's five parameters are never supervised. Converted to physical units
+and compared against published values for the $264$ confirmed planets in the
+test split, the recovered transit durations have a median absolute relative
+error of $3.2$ per cent and the depths $6.5$ per cent
+(Table~\ref{tab:params}). The Kepler pipeline's own fits, which use the
+unbinned light curve and a full physical model, do better at $2.0$ and $3.3$ per
+cent.
+
+\begin{table}[t]
+\centering
+\caption{Transit parameter recovery against published literature values for the
+264 confirmed planets in the test split. Median absolute relative error; the
+fraction of systems recovered to within 10 per cent is given in parentheses.}
+\label{tab:params}
+\begin{tabular}{lcc}
+\toprule
+Estimator & Duration & Depth \\
+\midrule
+Kepler DV catalogue          & $2.0\%$ ($90\%$) & $3.3\%$ ($86\%$) \\
+\phantomnet{} decoder        & $3.2\%$ ($89\%$) & $6.5\%$ ($66\%$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We do not claim the decoder as a better parameter estimator; it is not, and it
+was not trained to be. The result establishes something else, namely that the
+physical bottleneck is genuinely physical. A latent space that reproduces
+published durations to a few per cent without ever being shown a duration is
+encoding transit geometry rather than an arbitrary code, which is what licenses
+reading its ingress-softness parameter as a U-versus-V discriminant
+(Figure~\ref{fig:decoder}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig4_decoder.pdf}
+\caption{The differentiable decoder. (a) Fitted profiles against observed local
+views. (b) The ingress-softness parameter $s$ separates flat-bottomed planetary
+transits from V-shaped false positives. (c) Reconstruction residuals are
+systematically larger for non-planetary events.}
+\label{fig:decoder}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_parameters.pdf}
+\caption{Recovered transit durations and depths against published values for the
+264 confirmed planets in the test split, compared with the Kepler pipeline fit.}
+\label{fig:params}
+\end{figure}
+
+\subsection{Zero-shot transfer to TESS}
+\label{sec:tessresult}
+
+Applied without any adaptation to $2{,}351$ TESS objects of interest
+($1{,}298$ confirmed or known planets, $1{,}053$ false positives or false
+alarms), both networks degrade sharply: \phantomnet{} reaches an average
+precision of $0.789$ (AUC $0.751$) and \astronet{} $0.797$ (AUC $0.767$),
+against a chance rate of $0.552$. Both retain real discriminative power, and
+neither is usable as a TESS vetter at Kepler-level accuracy.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig7_cross_mission.pdf}
+\caption{Zero-shot transfer to 2{,}351 labelled TESS objects of interest. Both
+architectures retain discriminative power well above the chance rate but are far
+from their Kepler accuracy, and are indistinguishable from one another.}
+\label{fig:tess}
+\end{figure}
+
+The two models are statistically indistinguishable here, so the architectural
+advantage established on Kepler does not survive the mission transfer. This
+corroborates \citet{Kopparapu2026}, who report that single-mission training
+transfers poorly across instruments and recommend joint training. The causes are
+not mysterious: TESS light curves are two-minute rather than $29.4$-minute
+cadence, span four sectors rather than four years, have a pixel scale an order
+of magnitude coarser, and the TOI population is dominated by shorter-period,
+brighter-host systems than the Kepler TCE population. We report the result as a
+bound on what zero-shot transfer buys, not as a negative verdict on either
+architecture.
 
 %% ===================================================================
 \section{Discussion}
 \label{sec:discussion}
 
-%% DISCUSSION_PLACEHOLDER
+\subsection{What this study does and does not establish}
+
+The reliable finding is a comparative one: on a fixed benchmark, with matched
+training budget and identical splits, a multi-channel architecture with per-view
+tokens beats the standard two-view convolutional baseline by a margin that is
+large in operational terms --- most of a factor of three in wasted follow-up at
+fixed recall --- and does so with fewer parameters. That result is stable across
+seeds and split protocols.
+
+What the study does not establish is \emph{why}, at the level of individual
+components. We set out to demonstrate that explicit harmonic reasoning would
+resolve the half-period alias that defeats the classical odd-even test, and
+built both the harmonic views and a contrast head (Eq.~\ref{eq:contrast}) to
+that end. Neither survives ablation: the contrast head is worth
+$-0.0007 \pm$ noise, and the harmonic views $+0.0030$. We report this because the
+alternative --- quietly dropping the ablation and keeping the mechanism in the
+architecture diagram --- is how unfalsifiable folklore accumulates in an applied
+field.
+
+The honest reading is that the harmonic evidence is real but redundant. A binary
+detected at its half-period alias is visible in the $2P$ fold, but it is also
+visible in the odd-even depth ratio, in the secondary-phase view and in the
+decoder's shape parameter. Supplying it a fourth time adds little. This is
+consistent with the monotone degradation in Table~\ref{tab:ablation} and with
+the fact that the full gap to \astronet{} only appears once the architecture
+changes as well.
+
+\subsection{The strength of the tabular baseline}
+
+That gradient-boosted trees on summary statistics match a deep multi-channel
+network on average precision is, we think, the most practically important
+observation here. The Kepler data-validation products already encode much of
+what vetting requires, and a strong tabular learner extracts it cheaply and
+interpretably. The deep model earns its keep specifically in the high-recall
+regime and in settings where those diagnostics are unavailable --- which
+includes, notably, any survey without a mature data-validation pipeline behind
+it. Reporting a deep model against only \astronet{} and the classical cascade,
+as is common, overstates the case for depth.
+
+\subsection{Limitations}
+
+Our labels are Autovetter dispositions \citep{McCauliff2015}, themselves the
+output of an automated classifier, so the ceiling reported here is agreement
+with that labelling rather than with ground truth; the PC class in particular
+contains an unknown fraction of unconfirmed candidates. The comparison to
+\astronet{} is to our reimplementation on our preprocessing chain, not to the
+original authors' trained model. The conformal analysis assumes exchangeability
+between validation and test events, which the star-level split makes plausible
+but does not guarantee, and it is calibrated on a set of $\sim$$1{,}200$
+negatives, which as shown bounds the smallest usable target rate. The TESS
+experiment uses at most four sectors per target and TFOPWG dispositions that are
+themselves provisional. Finally, five seeds bound our resolution: an ablation
+worth $0.005$ in average precision would not be reliably detectable here, so our
+null results exclude large effects, not small ones.
 
 %% ===================================================================
 \section{Conclusions}
 \label{sec:conclusions}
 
-%% CONCLUSIONS_PLACEHOLDER
+We presented \phantomnet{}, a transit-vetting network that combines nine
+phase-folded views --- including folds at competing period hypotheses --- through
+a transformer over per-view tokens, together with a differentiable transit model
+fitted by reconstruction alone. On the Kepler DR24 benchmark it improves average
+precision over a matched \astronet{} baseline from $0.9385$ to $0.9732$ and cuts
+the false-positive content of a $95$ per cent recall candidate list by $62$ per
+cent, using fewer parameters. Conformal $p$-values with Benjamini--Hochberg
+selection deliver false-discovery-rate control at the five-to-twenty per cent
+targets a follow-up programme operates in, and the unsupervised decoder recovers
+transit durations and depths to a few per cent of published values while
+providing an interpretable U-versus-V shape discriminant.
+
+We also report what did not work. No individual component of the architecture is
+statistically responsible for its advantage; the star-level split we adopted to
+prevent leakage makes no measurable difference; gradient-boosted trees on
+summary statistics match the network on average precision; conformal control
+fails below a five per cent target; and zero-shot transfer to TESS degrades both
+architectures to indistinguishable performance. Each of these is a result a
+practitioner benefits from knowing, and none of them would have appeared in a
+paper reporting only its successes.
+
+The broader methodological point concerns attribution under redundancy. Vetting
+is a problem in which several physically distinct diagnostics point at the same
+false positives, and in which the standard leave-one-out ablation therefore
+reports that nothing matters while the ensemble plainly does. Future work on
+architectures for this task should report nested ablation sequences rather than
+single deletions, and should include a strong tabular baseline. We release the
+full pipeline --- acquisition, preprocessing, training, evaluation and figure
+generation --- to make both straightforward.
 
 \section*{Data availability}
 

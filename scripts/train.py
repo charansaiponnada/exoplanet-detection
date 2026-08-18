@@ -104,6 +104,10 @@ def main() -> int:
     ap.add_argument("--model", choices=["phantom", "astronet"], default="phantom")
     ap.add_argument("--tag", default="run")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--split-seed", type=int, default=-1,
+        help="seed for the train/val/test partition; defaults to --seed. Fixing it\n             while varying --seed gives members that share a test set and can\n             therefore be ensembled",
+    )
     ap.add_argument("--split-mode", choices=["group", "tce"], default="group")
     ap.add_argument("--epochs", type=int, default=50)
     ap.add_argument("--batch-size", type=int, default=128)
@@ -144,7 +148,8 @@ def main() -> int:
     y = (label == "PC").astype(np.float32)
     kepid = blob["kepid"]
 
-    tr, va, te = make_splits(kepid, len(y), mode=args.split_mode, seed=args.seed)
+    split_seed = args.seed if args.split_seed < 0 else args.split_seed
+    tr, va, te = make_splits(kepid, len(y), mode=args.split_mode, seed=split_seed)
     print(
         f"split[{args.split_mode}] train={len(tr)} val={len(va)} test={len(te)} "
         f"| positives {y[tr].mean():.3f}/{y[va].mean():.3f}/{y[te].mean():.3f}",
@@ -255,6 +260,7 @@ def main() -> int:
     stem = f"{args.tag}_seed{args.seed}_{args.split_mode}"
     record = {
         "tag": args.tag, "model": args.model, "seed": args.seed,
+        "split_seed": split_seed,
         "split_mode": args.split_mode, "views": view_names,
         "scalar_groups": groups, "n_scalars": int(scalars.shape[1]),
         "use_harmonic": (args.model == "phantom") and not args.no_harmonic,
