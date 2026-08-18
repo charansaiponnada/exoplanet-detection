@@ -80,4 +80,3 @@ paper/*.fls
 # Jupyter checkpoints
 .ipynb_checkpoints/
 paper/main.spl
-paper/main.pdf
