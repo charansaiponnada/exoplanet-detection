@@ -1,0 +1,85 @@
+<mxfile host="Electron" agent="Mozilla/5.0 drawio" version="29.5.2">
+  <diagram id="phantom-conformal" name="Candidate selection">
+    <mxGraphModel dx="1150" dy="750" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="b1" value="Trained five-model ensemble&#xa;scores s(x) for every candidate" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="40" width="250" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" value="Conformal p-values&#xa;each score ranked against ~1,200&#xa;held-out non-planets&#xa;p = (1 + #{s_cal &#8805; s}) / (n_cal + 1)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="40" width="300" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="Is p &#8804; t(q)?&#xa;Benjamini&ndash;Hochberg&#xa;step-up at level q" style="shape=rhombus;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="700" y="45" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="Include in the candidate list&#xa;promise: expected FDR &#8804; q&#xa;(exchangeability assumed)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="230" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" value="Reject &mdash; not observed&#xa;consumes no follow-up time" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="880" y="220" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="b5" value="Follow-up observation programme" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="380" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tag" value="Empirical check on the DR24 test set:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="466" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="Where control works&#xa;q = 0.05 &rarr; realised 0.057&#xa;q = 0.10 &rarr; 0.090 &middot; q = 0.20 &rarr; 0.194" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="120" y="492" width="390" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="Why it can fail below 5 per cent&#xa;coarse p-value grid, and dependence shared by&#xa;a common calibration set (realised 0.033 at q = 0.01)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="590" y="492" width="400" height="74" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="72" />
+              <mxPoint x="328" y="72" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="84" />
+              <mxPoint x="700" y="84" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="&le; t(q)" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;fontSize=12;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="126" />
+              <mxPoint x="810" y="170" />
+              <mxPoint x="490" y="170" />
+              <mxPoint x="490" y="228" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="&gt; t(q)" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;fontSize=12;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="100" />
+              <mxPoint x="920" y="160" />
+              <mxPoint x="1000" y="160" />
+              <mxPoint x="1000" y="238" />
+              <mxPoint x="1076" y="238" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="300" />
+              <mxPoint x="490" y="378" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

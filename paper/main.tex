@@ -34,39 +34,37 @@
 \address[a]{DEPARTMENT, INSTITUTION, CITY, COUNTRY}
 
 \begin{abstract}
-Transit surveys produce far more threshold-crossing events than planets, and
-deciding which is which is the bottleneck between photometry and a planet
-catalogue. We present \phantomnet{}, a vetting network that views each candidate
-through nine phase-folded representations --- global and local flux, odd and
-even epochs, the secondary phase, two centroid channels, and folds at the
-competing period hypotheses $P/2$ and $2P$ --- combined by a transformer over
-per-view tokens, together with a differentiable five-parameter transit model
-fitted by reconstruction alone. On the 15{,}683 labelled Kepler DR24
+Transit surveys flag far more events than there are planets, and telling the two
+apart is the bottleneck between photometry and a planet catalogue. We present
+\phantomnet{}, a vetting network that looks at each candidate through nine
+phase-folded views --- global and local flux, odd and even epochs, the secondary
+phase, two centroid channels, and folds at the competing period hypotheses
+$P/2$ and $2P$ --- combines them with a transformer over per-view tokens, and
+fits a five-parameter transit model on the side, from the light curve alone,
+without ever being taught a transit shape. On the 15{,}683 labelled Kepler DR24
 threshold-crossing events, \phantomnet{} reaches an average precision of
 $0.9732 \pm 0.0097$ against $0.9385 \pm 0.0093$ for a faithfully reimplemented
-\astronet{} trained on identical splits ($p = 4\times10^{-4}$, five seeds), and
-raises precision at $95$ per cent recall from $0.805$ to $0.927$ --- a
-$62$ per cent reduction in the follow-up effort wasted on false positives.
+\astronet{} trained on identical splits ($p = 4\times10^{-4}$, five seeds). The
+gain is architectural, and we show it by decomposing it: given only the two views
+\astronet{} itself receives, \phantomnet{} still wins by $0.0242$
+($p = 7\times10^{-3}$), while the extra views and scalars add a smaller,
+individually marginal $0.0105$. Operationally, precision at $95$ per cent recall
+rises from $0.805 \pm 0.033$ to $0.927 \pm 0.022$ ($p = 2\times10^{-4}$),
+cutting the false positives in a follow-up list by $62$ per cent.
 
-We then subject the architecture to controlled ablation, and report two negative
-results that we believe are more useful than the headline. First, no individual
-component is responsible for the gain: removing the harmonic contrast head, the
-harmonic views, the differentiable decoder, the centroid channels or the
-catalogue diagnostics each costs at most $0.007$ in average precision, and not
-one of the eight ablations is statistically significant. The advantage is
-collective and redundant, and single-component ablations therefore systematically
-understate it. Second, splitting the data by threshold-crossing event rather than
-by host star --- a protocol we expected to leak --- changes performance by
-$0.0002$ ($p = 0.97$). We further show that gradient-boosted trees on summary
-statistics match \phantomnet{} on average precision ($0.9754 \pm 0.0056$) while
-falling well short of it at high recall, that conformal $p$-values with
-Benjamini--Hochberg selection control the false discovery rate of the candidate
-list for target rates above about $5$ per cent but not below, that the
+We then try to break our own model and report the failures in full. None of the
+eight component ablations is statistically significant (the largest single effect
+is $0.0072$ in average precision); the star-level split we adopted costs nothing
+relative to the event-level split used by earlier work ($p = 0.97$);
+gradient-boosted trees on summary statistics match \phantomnet{} on average
+precision ($0.9754 \pm 0.0056$) before falling behind at high recall; conformal
+$p$-values with Benjamini--Hochberg selection control the false discovery rate of
+the candidate list down to about a five per cent target but not below; the
 unsupervised decoder recovers transit durations and depths to $3.2$ and $6.5$ per
-cent of published values without ever seeing a parameter label, and that
-zero-shot transfer to $2{,}351$ TESS objects of interest degrades to an average
-precision of $0.79$ for both \phantomnet{} and \astronet{}, corroborating recent
-reports that cross-mission generalisation is not obtained for free.
+cent of published values; and zero-shot transfer to $2{,}351$ TESS objects of
+interest drops both \phantomnet{} and \astronet{} to an average precision of
+$0.79$. We report all of these because each is a result a practitioner relies on,
+and each would have been quietly dropped in a paper that published only its wins.
 \end{abstract}
 
 \begin{keyword}
@@ -115,9 +113,16 @@ used it to recover two previously missed planets. Subsequent work added input
 channels rather than changing the reasoning: \citet{Ansdell2018} supplied
 centroid time series and stellar parameters, and \exominer{}
 \citep{Valizadegan2022} added a branch per diagnostic test and validated 301 new
-planets. The same recipe was carried to TESS \citep{Yu2019, Osborn2020}, and
-more recently attention has been introduced over the same two views, together
-with post-hoc temperature scaling, by \citet{Islam2026}.
+planets. The same recipe was carried to TESS \citep{Yu2019, Osborn2020}, and more
+        recently attention has been introduced over the same two views, together with
+        post-hoc temperature scaling, by \citet{Islam2026}. That study is architecturally
+        the closest to the present one, so we state the three differences plainly. They
+        attend over the two classical views alone; we add views at the competing period
+        hypotheses and an explicit comparison between them (Section~\ref{sec:harmonic}).
+        They treat calibration as a post-hoc temperature scale; we report calibration but
+        rest the operational guarantee on conformal $p$-values instead. And their
+        selection guarantee, if any, is not distribution-free; ours is
+        (Section~\ref{sec:conformal}).
 
 Two concurrent studies bear directly on the present work. \citet{Priyanshu2026}
 give the first application of conformal prediction to transit \emph{detection},
@@ -158,15 +163,17 @@ gaps, and --- more importantly --- a controlled study of which of its parts
 actually earn their place. Our contributions are as follows.
 
 \begin{enumerate}
-\item \textbf{A multi-channel vetting architecture.} Nine phase-folded views,
-      including folds at the competing period hypotheses $P/2$ and $2P$, are
-      encoded independently and combined by a transformer over per-view tokens
-      carrying view-type and period-hypothesis embeddings
-      (Section~\ref{sec:harmonic}). On the standard Kepler DR24 benchmark this
-      improves average precision over a faithfully reimplemented \astronet{} by
-      $0.035$ at matched training budget and slightly \emph{lower} parameter
-      count, and cuts the false-positive content of a $95$ per cent recall
-      candidate list by $62$ per cent.
+\item \textbf{A vetting architecture that improves on two-view baselines with
+      fewer parameters.} Nine phase-folded views, including folds at the
+      competing period hypotheses $P/2$ and $2P$, are encoded independently and
+      combined by a transformer over per-view tokens carrying view-type and
+      period-hypothesis embeddings (Section~\ref{sec:harmonic}). On the standard
+      Kepler DR24 benchmark this improves average precision over a faithfully
+      reimplemented \astronet{} by $0.0347$ at matched training budget and
+      slightly \emph{lower} parameter count, and cuts the false-positive content
+      of a $95$ per cent recall candidate list by $62$ per cent. The gain is
+      architectural: restricted to exactly the two views \astronet{} receives,
+      \phantomnet{} still beats it by $0.0242$ (Section~\ref{sec:comparison}).
 \item \textbf{A differentiable transit decoder.} A five-parameter analytic
       transit model is rendered onto the local view and fitted by reconstruction
       with no parameter supervision (Section~\ref{sec:decoder}). Its bottleneck
@@ -199,6 +206,17 @@ than of any one implementation, and it has a direct methodological consequence:
 one-component-at-a-time ablation, the standard instrument for attributing credit
 in this literature, systematically understates the value of a redundant
 ensemble of evidence.
+
+One boundary on our claims should be stated up front. We compare against a
+reimplemented \astronet{}, retrained under identical conditions, because it is
+the strongest baseline of its class that we can control end to end. The more
+elaborate \exominer{} family \citep{Valizadegan2022} --- one branch per
+diagnostic test plus catalogue parameters, exactly the design space this paper
+extends --- reports higher published accuracy on this benchmark, and we do not
+claim to beat it. A head-to-head requires an \exominer{} trained model, which is
+not public, and is left to future work. Our contribution is the controlled
+decomposition of what a multi-view architecture buys, not a new record on the
+benchmark.
 
 %% ===================================================================
 \section{Data}
@@ -249,6 +267,20 @@ flag are kept, since the TESS quality bits differ from Kepler's.
 \section{From photometry to fixed-length views}
 \label{sec:preprocessing}
 
+Figure~\ref{fig:pipeline} is the workflow that all four models share, from raw
+photometry to the evaluation tables of Section~\ref{sec:results}. Each step is
+described below.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig9_pipeline.pdf}
+\caption{The evaluation pipeline, identical for every model: quality-flag
+masking and gap splitting, B-spline detrending with the transit epochs masked,
+folding on the reported ephemeris into nine views plus derived scalars, a
+star-level 80/10/10 split, training over five seeds, and evaluation.}
+\label{fig:pipeline}
+\end{figure}
+
 \subsection{Detrending}
 
 Stellar variability and residual instrumental trends exceed a planetary transit
@@ -278,8 +310,10 @@ on the same star are removed, and the remainder is folded on the reported
 ephemeris. Nine fixed-length views are then rendered by median-binning
 (Table~\ref{tab:views}). Each is centred on its median and divided by the
 absolute value of its minimum, so that the deepest bin sits at $-1$; the divisor
-is retained as a scalar, which is what allows an absolute depth to be recovered
-from the normalised view in Section~\ref{sec:decoder}.
+(hereafter $\kappa$) is retained as a scalar, which is what allows an absolute
+depth to be recovered from the normalised view in Section~\ref{sec:decoder}.
+All normalisation statistics seen by the network --- medians, minima and
+$\kappa$ --- are computed per event and therefore cannot leak split information.
 
 \begin{table}[t]
 \centering
@@ -296,8 +330,8 @@ Local        & 201  & $P$   & transit shape \\
 Odd          & 201  & $P$   & depth on odd epochs \\
 Even         & 201  & $P$   & depth on even epochs \\
 Secondary    & 201  & $P$   & occultation by a luminous companion \\
-Harmonic     & 201  & $P/2$ & is the true period half of the reported one? \\
-Harmonic     & 2001 & $2P$  & does the fold separate into unequal eclipses? \\
+Harmonic ($P/2$) & 201  & $P/2$ & is the true period half of the reported one? \\
+Harmonic ($2P$)  & 2001 & $2P$  & do alternate eclipses differ in depth? \\
 Centroid (global) & 2001 & $P$ & photocentre motion, whole orbit \\
 Centroid (local)  & 201  & $P$ & photocentre motion during the event \\
 \bottomrule
@@ -350,6 +384,21 @@ training-split statistics.
 
 \phantomnet{} has three parts: a per-view convolutional encoder, a harmonic
 attention block over the resulting tokens, and a differentiable transit decoder.
+Figure~\ref{fig:architecture} is the map of the whole network.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{figures/fig8_architecture.pdf}
+\caption{The \phantomnet{} architecture. Nine views are encoded independently
+by residual CNNs into 256-dimensional tokens; view-type and period-hypothesis
+embeddings and a classification token are combined by a three-layer
+transformer. The harmonic contrast head pools the tokens by period hypothesis
+and passes their differences (Eq.~\ref{eq:contrast}) to the classifier, while a
+differentiable five-parameter transit model is rendered onto the local view and
+fitted by reconstruction alone. Outputs: a vetting score, five physical
+parameters, and a reconstruction residual.}
+\label{fig:architecture}
+\end{figure}
 
 \subsection{View encoders}
 
@@ -449,15 +498,26 @@ Because previous work reports the TCE-level split, we also report it, so that
 the comparison to published numbers is like-for-like and the size of the leakage
 is itself measurable.
 
-\subsection{Metrics}
+\subsection{Metrics and conventions}
+\label{sec:conventions}
 
 We report the area under the ROC curve, average precision (the area under the
 precision-recall curve), and precision at fixed recall. The last is the
 operational quantity: a vetting pipeline is run at high recall so as not to
 discard planets, and is then judged by how much follow-up effort the surviving
-false positives consume. All figures are averaged over five random seeds and
-reported with their standard deviation; ensembles average the per-seed
-probabilities.
+false positives consume.
+
+Throughout, catalogue figures are seed means of \emph{single} networks: every
+entry in Tables~\ref{tab:main}, \ref{tab:ablation} and \ref{tab:conformal} is the
+mean over five random seeds of a single-run model, quoted with the standard
+deviation over those seeds, and every significance test (Welch's $t$-test
+\citep{Welch1947} on the per-seed values) is computed on those single-run
+values. The fixed five-member ensemble built on the validation split is used
+\emph{only} where stable scores are required --- the decoder parameter
+uncertainties of Section~\ref{sec:protocol}, the calibration diagnostics and the
+conformal selection of Section~\ref{sec:conformal} --- and is never quoted in the
+headline comparisons. This keeps the reported means and the significance tests on
+the same object.
 
 \subsection{Distribution-free candidate selection}
 \label{sec:conformal}
@@ -477,6 +537,18 @@ distribution-free: it requires only that calibration and test events be
 exchangeable, and holds regardless of whether the network is well specified or
 well calibrated. For comparison we also report the expected calibration error
 before and after temperature scaling \citep{Guo2017}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/fig10_candidate_selection.pdf}
+\caption{Distribution-free candidate selection. Each score is converted to a
+conformal $p$-value against the held-out known non-planets
+($n_{\mathrm{cal}} \approx 1{,}200$). A Benjamini--Hochberg threshold at level
+$q$ either admits the event to the candidate list, whose false discovery rate is
+then controlled at $q$, or rejects it as unobserved, consuming no follow-up
+time.}
+\label{fig:candidate}
+\end{figure}
 
 \subsection{Transit parameter recovery}
 
@@ -518,16 +590,17 @@ detail from the original.
 \centering
 \caption{Test-set performance on the 15{,}683 labelled Kepler DR24
 threshold-crossing events, star-level split, five seeds. P@R denotes precision
-at the stated recall.}
+at the stated recall. All entries are means of single-run models, $\pm$ one
+standard deviation over the five seeds.}
 \label{tab:main}
 \begin{tabular}{lccccc}
 \toprule
 Model & Params & AUC & AP & P@R$=0.90$ & P@R$=0.95$ \\
 \midrule
-Classical cascade  & --      & $0.7668 \pm 0.0162$ & $0.4017 \pm 0.0193$ & $0.271$ & $0.271$ \\
-\astronet{}        & 10.55\,M & $0.9825 \pm 0.0028$ & $0.9385 \pm 0.0093$ & $0.868$ & $0.805$ \\
-GBDT (scalars)     & --      & $0.9923 \pm 0.0025$ & $\mathbf{0.9754 \pm 0.0056}$ & $0.939$ & $0.902$ \\
-\phantomnet{}      & 9.16\,M  & $\mathbf{0.9929 \pm 0.0027}$ & $0.9732 \pm 0.0097$ & $\mathbf{0.962}$ & $\mathbf{0.927}$ \\
+Classical cascade  & --      & $0.7668 \pm 0.0162$ & $0.4017 \pm 0.0193$ & $0.271 \pm 0.010$ & $0.271 \pm 0.010$ \\
+\astronet{}        & 10.55\,M & $0.9825 \pm 0.0028$ & $0.9385 \pm 0.0093$ & $0.868 \pm 0.017$ & $0.805 \pm 0.033$ \\
+GBDT (scalars)     & --      & $0.9923 \pm 0.0025$ & $\mathbf{0.9754 \pm 0.0056}$ & $0.939 \pm 0.015$ & $0.901 \pm 0.034$ \\
+\phantomnet{}      & 9.16\,M  & $\mathbf{0.9929 \pm 0.0027}$ & $0.9732 \pm 0.0097$ & $\mathbf{0.962 \pm 0.007}$ & $\mathbf{0.927 \pm 0.022}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -537,7 +610,24 @@ is run at high recall so as not to discard planets, and is then judged by the
 follow-up effort its false positives consume. At $95$ per cent recall the
 \astronet{} candidate list is $19.5$ per cent false positives and the
 \phantomnet{} list is $7.3$ per cent, a reduction of $62$ per cent in wasted
-effort. Figure~\ref{fig:prroc} shows the full precision-recall and ROC curves.
+effort, and the $0.927\pm0.022$ versus $0.805\pm0.033$ gap is significant at
+five seeds ($p = 2\times10^{-4}$). Against the tree the advantage is smaller
+($0.927 \pm 0.022$ versus $0.901 \pm 0.034$) and is not significant in this
+protocol ($p = 0.20$). Figure~\ref{fig:prroc} shows the full precision-recall
+and ROC curves.
+
+\textbf{Why the model wins.} Table~\ref{tab:ablation} lets us separate the two
+factors --- architecture and input channels --- that Table~\ref{tab:main} conflates.
+Restricted to the global and local views alone, the two channels \astronet{}
+itself receives, \phantomnet{} reaches $0.9627 \pm 0.0117$ against \astronet{}'s
+$0.9385 \pm 0.0093$: a gain of $0.0242$ from the transformer-over-views
+architecture on identical inputs ($p = 7\times10^{-3}$). Adding back the other
+seven views and the scalars lifts the full model to $0.9732$, an increment of
+$0.0105$ that is individually marginal ($p = 0.16$). The headline gap is
+therefore mostly an architectural one, and the multi-channel contribution ---
+clearly real, but smaller and not individually significant --- is best read as
+redundant insurance that helps most in particular failure modes, as the
+ablations below show.
 
 Two baseline results deserve emphasis. The classical cascade --- the odd-even,
 secondary-eclipse and V-shape tests, implemented carefully and with the
@@ -632,32 +722,105 @@ interval with the full model is the central negative result of this study.}
 \label{fig:ablation}
 \end{figure}
 
-The pattern is nonetheless orderly. Effects grow monotonically as more evidence
-is withdrawn: removing one channel costs little, removing all the extra channels
-costs $0.0104$, removing all scalars costs $0.0121$, and only when the
-architecture is changed as well does the full $0.0347$ gap to \astronet{} open
-up. The components are individually dispensable and collectively necessary,
-which is the signature of redundant evidence. A grazing eclipsing binary, for
-instance, betrays itself in the V-shaped local profile, in the decoder's
-ingress-softness parameter, in the odd-even depth ratio and in the $2P$ fold;
-deleting any one leaves the other three.
+The pattern is nonetheless orderly, and it should be read carefully. The rows
+of Table~\ref{tab:ablation} are alternative configurations, not a controlled
+chain of successive deletions, so we do not claim a monotone degradation. What
+the table does show is twofold. First, every single-component deletion is null:
+none of the eight tests reaches significance, and none is close. Even
+uncorrected --- and with eight tests at $\alpha = 0.05$ any correction only
+strengthens the conclusion --- the largest $p$-value difference is $+0.0121$
+($p = 0.21$). Second, the restricted configurations degrade more than any single
+deletion: dropping the harmonic views, the centroid views or the catalogue
+diagnostics one at a time costs $0.0030$-$0.0072$, but withdrawing all the extra
+channels together costs $0.0104$, and removing all scalars as well costs $0.0121$.
+The components are individually dispensable and collectively load-bearing, which
+is the signature of redundant evidence. A grazing eclipsing binary, for instance,
+betrays itself in the V-shaped local profile, in the decoder's ingress-softness
+parameter, in the odd-even depth ratio and in the $2P$ fold; deleting any one
+leaves the other three.
 
-This has a methodological consequence worth stating plainly. Leave-one-out
-ablation is the standard instrument for attributing credit in this literature,
-and under redundancy it is close to uninformative --- it will report that
-nothing matters even when the ensemble of components clearly does. The
-comparison that carries information is the nested sequence, not the individual
-deletion.
+What resolution does this protocol actually have? With the observed seed spreads
+($0.006$-$0.017$ in average precision), a two-sided Welch test at five seeds and
+$80$ per cent power detects differences of roughly $0.02$ when the spread is
+typical ($0.010$) and $0.03$ when it is largest ($0.017$). The nulls must
+therefore be read as upper bounds, not as proofs of worthlessness: they exclude
+individual contributions above about one to three points of average precision,
+and they cannot, by construction, detect the $\sim$$0.001$-$0.006$ effects shown
+here. The comparison that does carry information is the architectural contrast
+drawn in Section~\ref{sec:comparison} --- same inputs, different combination ---
+not any single deletion.
+
+\paragraph{A controlled nested chain.} Table~\ref{tab:ablation} varies one
+component against the full model, which is the right design for asking whether
+any single component is load-bearing but the wrong one for asking how evidence
+degrades as it is withdrawn cumulatively, since each row is compared against a
+different alternative rather than against the row before it. We therefore ran a
+second, strictly nested sequence: starting from the full model, each
+configuration is a subset of its predecessor's inputs, ending at the two views
+\astronet{} itself receives (Table~\ref{tab:nested}). Five seeds per link, as
+before.
+
+\begin{table}[t]
+\centering
+\caption{The nested ablation chain: each row withdraws evidence from the row
+above it, ending at \astronet{}'s own two-view input set. Step $\Delta$AP is
+the drop from the immediately preceding link; cumulative $\Delta$AP is the drop
+from the full model. $p$ is against the full model (Welch, five seeds).}
+\label{tab:nested}
+\begin{tabular}{lcccc}
+\toprule
+Configuration & AP & step $\Delta$AP & cumulative $\Delta$AP & $p$ \\
+\midrule
+full model (9 views, all scalars)      & $0.9732 \pm 0.0097$ & --      & --      & --    \\
+$-$ DV diagnostics                      & $0.9670 \pm 0.0095$ & $0.0062$ & $0.0062$ & 0.34 \\
+$-$ catalogue scalars                   & $0.9621 \pm 0.0113$ & $0.0049$ & $0.0110$ & 0.14 \\
+$-$ derived scalars (no scalars at all) & $0.9610 \pm 0.0168$ & $0.0011$ & $0.0121$ & 0.21 \\
+$-$ centroid views                      & $0.9342 \pm 0.0157$ & $0.0268$ & $0.0389$ & $2\times10^{-3}$ \\
+$-$ harmonic views ($P/2$, $2P$)        & $0.9366 \pm 0.0148$ & $-0.0024$ & $0.0365$ & $3\times10^{-3}$ \\
+$-$ secondary view                      & $0.9347 \pm 0.0130$ & $0.0019$ & $0.0385$ & $9\times10^{-4}$ \\
+$-$ odd/even views (\astronet{}'s inputs) & $0.9320 \pm 0.0141$ & $0.0027$ & $0.0412$ & $9\times10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The chain is not monotone at every step --- removing the harmonic views after
+the centroid views has already been removed leaves AP essentially unchanged
+($-0.0024$, within noise) --- but the cumulative pattern is exactly what
+Table~\ref{tab:ablation} implied without being able to show directly: evidence
+degrades in one large jump and several small ones, not smoothly. Losing the
+scalar block costs $0.0121$, all of it non-significant one component at a time.
+Losing the centroid views on top of that costs a further $0.0268$
+($p = 2\times10^{-3}$), which is the single largest effect anywhere in this
+study and is significant even though the identical deletion, made against the
+full model with scalars still present, was not (Table~\ref{tab:ablation},
+$+0.0072$, $p = 0.31$). The centroid views and the scalar diagnostics are
+therefore substitutes for each other: the pipeline's own centroid features
+(\texttt{tce\_dikco\_msky}, \texttt{tce\_dicco\_msky} --- the top-ranked GBDT
+feature in Section~\ref{sec:comparison}) and the raw centroid views encode
+overlapping information about photocenter motion, and the model needs only one
+of the two. The last three links, which converge on \astronet{}'s own two-view
+input set, add little beyond that: by the time centroid and scalar evidence is
+gone, dropping the harmonic folds, the secondary view, and finally the odd/even
+views costs $0.0019$--$0.0027$ each, small individually but cumulatively enough
+to land within $0.0035$ of \astronet{}'s own reported operating point on
+identical inputs. That gap --- architecture holding inputs fixed at both ends of
+the chain --- is the cleanest single number in this study for how much of the
+headline improvement is attributable to the transformer fusion itself rather
+than to the extra channels: on \astronet{}'s two views, \phantomnet{} still wins
+by $0.0242$ (Section~\ref{sec:conclusions}), and the remaining seven views and
+scalar block recover most, but not all, of the difference between that number
+and the $0.0347$ gap in Table~\ref{tab:ablation}.
 
 \subsection{Calibration and distribution-free candidate selection}
 \label{sec:conformalresult}
 
-A five-member ensemble on a fixed split improves average precision by $0.0028$
-and precision at $95$ per cent recall by $0.0113$ over its individual members,
-and reduces the expected calibration error from $0.0142$ to $0.0120$ under
-temperature scaling ($T = 1.12$). The network is already close to calibrated
-before scaling, which is not typical of deep classifiers \citep{Guo2017} and
-which we attribute to the modest capacity and strong augmentation.
+The conformal selection, the calibration diagnostics and the decoder
+uncertainties are computed on the fixed five-member ensemble described in
+Section~\ref{sec:conventions}; temperature scaling reduces its expected
+calibration error from $0.0142$ to $0.0120$ ($T = 1.12$). The network is
+already close to calibrated before scaling, which is not typical of deep
+classifiers \citep{Guo2017} and which we attribute to the modest capacity and
+strong augmentation.
 
 Calibration, however, is a statement about average agreement, not a guarantee.
 Table~\ref{tab:conformal} reports the realised false discovery rate of the
@@ -818,9 +981,9 @@ The honest reading is that the harmonic evidence is real but redundant. A binary
 detected at its half-period alias is visible in the $2P$ fold, but it is also
 visible in the odd-even depth ratio, in the secondary-phase view and in the
 decoder's shape parameter. Supplying it a fourth time adds little. This is
-consistent with the monotone degradation in Table~\ref{tab:ablation} and with
-the fact that the full gap to \astronet{} only appears once the architecture
-changes as well.
+consistent with the restricted-configuration degradation of
+Table~\ref{tab:ablation} and with the fact that the full gap to \astronet{}
+only appears once the architecture changes as well.
 
 \subsection{The strength of the tabular baseline}
 
@@ -846,9 +1009,10 @@ between validation and test events, which the star-level split makes plausible
 but does not guarantee, and it is calibrated on a set of $\sim$$1{,}200$
 negatives, which as shown bounds the smallest usable target rate. The TESS
 experiment uses at most four sectors per target and TFOPWG dispositions that are
-themselves provisional. Finally, five seeds bound our resolution: an ablation
-worth $0.005$ in average precision would not be reliably detectable here, so our
-null results exclude large effects, not small ones.
+themselves provisional. Finally, five seeds bound our resolution: at $80$ per
+cent power the protocol detects differences of roughly $0.02$-$0.03$ in average
+precision (Section~\ref{sec:ablation}), so the null ablations are upper bounds
+that exclude moderate-to-large effects, not small ones.
 
 %% ===================================================================
 \section{Conclusions}
@@ -860,7 +1024,11 @@ a transformer over per-view tokens, together with a differentiable transit model
 fitted by reconstruction alone. On the Kepler DR24 benchmark it improves average
 precision over a matched \astronet{} baseline from $0.9385$ to $0.9732$ and cuts
 the false-positive content of a $95$ per cent recall candidate list by $62$ per
-cent, using fewer parameters. Conformal $p$-values with Benjamini--Hochberg
+cent, using fewer parameters. Most of that gain is architectural rather than a
+matter of input channels: restricted to the two views \astronet{} itself
+receives, \phantomnet{} already wins by $0.0242$, and the remaining seven views
+and the scalar features add a smaller, individually marginal $0.0105$. Conformal
+$p$-values with Benjamini--Hochberg
 selection deliver false-discovery-rate control at the five-to-twenty per cent
 targets a follow-up programme operates in, and the unsupervised decoder recovers
 transit durations and depths to a few per cent of published values while

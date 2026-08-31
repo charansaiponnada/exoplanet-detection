@@ -1,0 +1,130 @@
+<mxfile host="Electron" agent="Mozilla/5.0 drawio" version="29.5.2">
+  <diagram id="phantom-pipeline" name="Analysis pipeline">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- data sources -->
+        <mxCell id="src-kepler" value="Kepler light curves&#xa;67.8 GB, 157,982 FITS files (Q0&ndash;Q17)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="300" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="src-tce" value="DR24 TCE catalogue + Autovetter labels&#xa;15,683 labelled events, 9,865 stars" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="375" y="30" width="300" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="src-arch" value="NASA Exoplanet Archive&#xa;confirmed planets, KOIs, TESS TOIs" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="30" width="300" height="58" as="geometry" />
+        </mxCell>
+
+        <!-- spine -->
+        <mxCell id="s1" value="1  &middot;  Quality-flag masking and gap splitting (segments longer than 0.75 d)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="150" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="2  &middot;  Detrending: cubic B-spline, knot spacing by BIC, transits masked" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="236" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="3  &middot;  Phase folding at the reported ephemeris &rarr; nine views and derived scalars" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="322" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="4  &middot;  Star-level 80 / 10 / 10 split &mdash; the same rows for every model" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="408" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="5  &middot;  Training &mdash; PHANTOM, AstroNet, GBDT, classical cascade; five seeds each (61 runs)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="494" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="6  &middot;  Evaluation &mdash; average precision, AUC, precision at 95% recall; Welch t-test" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="250" y="580" width="760" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- downstream analyses -->
+        <mxCell id="d1" value="Ablations&#xa;five seeds per configuration" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="90" y="690" width="250" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="Conformal + Benjamini&ndash;Hochberg&#xa;candidate lists with an FDR bound" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="425" y="690" width="270" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="Transit-parameter recovery&#xa;zero-shot transfer to TESS" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="780" y="690" width="250" height="54" as="geometry" />
+        </mxCell>
+
+        <!-- edges -->
+        <mxCell id="e-src" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="525" y="88" />
+              <mxPoint x="525" y="148" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-1" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="200" />
+              <mxPoint x="570" y="234" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-2" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="286" />
+              <mxPoint x="570" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-3" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="372" />
+              <mxPoint x="570" y="406" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-4" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="458" />
+              <mxPoint x="570" y="492" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-5" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="544" />
+              <mxPoint x="570" y="578" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-6" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="630" />
+              <mxPoint x="570" y="688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-6a" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="630" />
+              <mxPoint x="570" y="660" />
+              <mxPoint x="215" y="660" />
+              <mxPoint x="215" y="688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-6b" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="630" />
+              <mxPoint x="570" y="660" />
+              <mxPoint x="905" y="660" />
+              <mxPoint x="905" y="688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

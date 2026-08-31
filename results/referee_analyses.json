@@ -1,0 +1,335 @@
+{
+  "rp99_phantom_vs_astronet": {
+    "delta": 0.16248666872789744,
+    "t": 1.0591005419109276,
+    "p": 0.3333718586433261
+  },
+  "rp99": [
+    {
+      "model": "classical",
+      "r_at_p99_mean": 0.0,
+      "r_at_p99_std": 0.0,
+      "n_seeds": 5
+    },
+    {
+      "model": "astronet",
+      "r_at_p99_mean": 0.17821096506084097,
+      "r_at_p99_std": 0.140979500567908,
+      "n_seeds": 5
+    },
+    {
+      "model": "gbdt",
+      "r_at_p99_mean": 0.5215146165535315,
+      "r_at_p99_std": 0.08348090667786609,
+      "n_seeds": 5
+    },
+    {
+      "model": "phantom_full",
+      "r_at_p99_mean": 0.3406976337887384,
+      "r_at_p99_std": 0.3127498767081739,
+      "n_seeds": 5
+    }
+  ],
+  "architecture_contrast": {
+    "phantom_sv_no_scalars_ap": 0.9319857879208084,
+    "phantom_sv_no_scalars_std": 0.0140534752702663,
+    "astronet_ap": 0.9384590271388993,
+    "astronet_std": 0.009342859426906248,
+    "delta": -0.006473239218090843,
+    "t": -0.8577187599713335,
+    "p": 0.41960810868146625
+  },
+  "nested_chain": [
+    {
+      "tag": "phantom_full",
+      "label": "full model",
+      "inputs": "9 views, all scalars",
+      "ap_mean": 0.9731591956391427,
+      "ap_std": 0.009749712149848839,
+      "cumulative_delta": 0.0,
+      "step_delta": null,
+      "p_vs_full": 1.0,
+      "n_seeds": 5
+    },
+    {
+      "tag": "phantom_no_dv",
+      "label": "$-$ DV diagnostics",
+      "inputs": "9 views, no DV scalars",
+      "ap_mean": 0.9670069128288163,
+      "ap_std": 0.009510761354051652,
+      "cumulative_delta": 0.006152282810326315,
+      "step_delta": 0.006152282810326315,
+      "p_vs_full": 0.34206644973846273,
+      "n_seeds": 5
+    },
+    {
+      "tag": "phantom_derived_only",
+      "label": "$-$ catalogue scalars",
+      "inputs": "9 views, derived scalars only",
+      "ap_mean": 0.9621317008776635,
+      "ap_std": 0.011284636638942521,
+      "cumulative_delta": 0.011027494761479129,
+      "step_delta": 0.004875211951152814,
+      "p_vs_full": 0.13763184038888324,
+      "n_seeds": 5
+    },
+    {
+      "tag": "phantom_no_scalars",
+      "label": "$-$ derived scalars",
+      "inputs": "9 views, no scalars",
+      "ap_mean": 0.9610136729109445,
+      "ap_std": 0.016801469672450636,
+      "cumulative_delta": 0.012145522728198133,
+      "step_delta": 0.001118027966719004,
+      "p_vs_full": 0.20849195013106173,
+      "n_seeds": 5
+    },
+    {
+      "tag": "nest_n4_no_centroid",
+      "label": "$-$ centroid views",
+      "inputs": "7 views, no scalars",
+      "ap_mean": 0.9342154975715149,
+      "ap_std": 0.015688945143611913,
+      "cumulative_delta": 0.03894369806762776,
+      "step_delta": 0.02679817533942963,
+      "p_vs_full": 0.0024543265853043754,
+      "n_seeds": 5
+    },
+    {
+      "tag": "nest_n5_no_harmonic",
+      "label": "$-$ harmonic views",
+      "inputs": "5 views, no scalars",
+      "ap_mean": 0.936637646341055,
+      "ap_std": 0.01483446394744147,
+      "cumulative_delta": 0.03652154929808771,
+      "step_delta": -0.0024221487695400556,
+      "p_vs_full": 0.002565343198670987,
+      "n_seeds": 5
+    },
+    {
+      "tag": "nest_n6_no_secondary",
+      "label": "$-$ secondary view",
+      "inputs": "4 views, no scalars",
+      "ap_mean": 0.934697202334785,
+      "ap_std": 0.012974277667048398,
+      "cumulative_delta": 0.03846199330435762,
+      "step_delta": 0.0019404440062699146,
+      "p_vs_full": 0.0009294507643688186,
+      "n_seeds": 5
+    },
+    {
+      "tag": "nest_n7_sv_only",
+      "label": "$-$ odd/even views",
+      "inputs": "2 views, no scalars",
+      "ap_mean": 0.9319857879208084,
+      "ap_std": 0.0140534752702663,
+      "cumulative_delta": 0.04117340771833422,
+      "step_delta": 0.0027114144139765983,
+      "p_vs_full": 0.0009688081946882917,
+      "n_seeds": 5
+    }
+  ],
+  "per_class": [
+    {
+      "model": "astronet",
+      "negative_class": "AFP",
+      "n_negatives": 9565,
+      "ap_mean": 0.9408526197108866,
+      "ap_std": 0.009078679345721796,
+      "auc_mean": 0.9798112003867328,
+      "auc_std": 0.003088277405958887
+    },
+    {
+      "model": "astronet",
+      "negative_class": "NTP",
+      "n_negatives": 2538,
+      "ap_mean": 0.9953274782786572,
+      "ap_std": 0.0023804888494558733,
+      "auc_mean": 0.9927088445166132,
+      "auc_std": 0.0032921433175745573
+    },
+    {
+      "model": "phantom_full",
+      "negative_class": "AFP",
+      "n_negatives": 9565,
+      "ap_mean": 0.9753686607255034,
+      "ap_std": 0.007628204436561155,
+      "auc_mean": 0.9922846976530433,
+      "auc_std": 0.0025053888785958158
+    },
+    {
+      "model": "phantom_full",
+      "negative_class": "NTP",
+      "n_negatives": 2538,
+      "ap_mean": 0.9966195773350813,
+      "ap_std": 0.0028419033071832808,
+      "auc_mean": 0.9952964944707345,
+      "auc_std": 0.0033233093429964606
+    }
+  ],
+  "precision_at_recall_spread": [
+    {
+      "model": "astronet",
+      "p_at_r90_mean": 0.8677698992681984,
+      "p_at_r90_std": 0.01685319428084921,
+      "p_at_r95_mean": 0.8052594824933133,
+      "p_at_r95_std": 0.0327932516741629
+    },
+    {
+      "model": "gbdt",
+      "p_at_r90_mean": 0.9393241235316235,
+      "p_at_r90_std": 0.015402676415191913,
+      "p_at_r95_mean": 0.9014674905220618,
+      "p_at_r95_std": 0.033531110148977326
+    },
+    {
+      "model": "phantom_full",
+      "p_at_r90_mean": 0.9616023791609543,
+      "p_at_r90_std": 0.006642009031309166,
+      "p_at_r95_mean": 0.9265731743660206,
+      "p_at_r95_std": 0.021925243882496614
+    }
+  ],
+  "p_at_r95_phantom_vs_astronet": {
+    "delta": 0.12131369187270735,
+    "t": 6.876606321505017,
+    "p": 0.00023924407553131913
+  },
+  "p_at_r95_phantom_vs_gbdt": {
+    "delta": 0.025105683843958837,
+    "t": 1.4012400736915758,
+    "p": 0.20453037320732642
+  },
+  "minimum_detectable_effect": {
+    "n_per_arm": 5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "df": 8,
+    "t_crit": 2.306004135204166,
+    "delta_ap": {
+      "sigma_0.006": 0.01212376899048526,
+      "sigma_0.01": 0.020206281650808768,
+      "sigma_0.017": 0.03435067880637491
+    }
+  },
+  "conformal_validity": {
+    "n_calibration_negatives": 1216,
+    "n_test_negatives": 1198,
+    "mean_pvalue": 0.5215073602539427,
+    "ks_statistic": 0.04944216806153234,
+    "ks_pvalue": 0.005521953074861288,
+    "grid_resolution": 0.0008216926869350862,
+    "frac_below_0p05": 0.06093489148580968,
+    "frac_below_0p10": 0.10684474123539232,
+    "half_calibration": {
+      "n": 608,
+      "smallest_attainable_p": 0.0016420361247947454,
+      "mean_pvalue": 0.5215493255041929
+    },
+    "smallest_attainable_p": 0.0008216926869350862
+  },
+  "tess_strata": [
+    {
+      "model": "phantom",
+      "stratum": "all",
+      "n": 2351,
+      "n_positive": 1298,
+      "ap": 0.7885054451379427,
+      "auc": 0.7514702288713588,
+      "p_at_r90": 0.6194503171247357,
+      "p_at_r95": 0.573953488372093
+    },
+    {
+      "model": "astronet",
+      "stratum": "all",
+      "n": 2351,
+      "n_positive": 1298,
+      "ap": 0.7971887254137768,
+      "auc": 0.7671627911740906,
+      "p_at_r90": 0.6001026694045175,
+      "p_at_r95": 0.5798872180451128
+    },
+    {
+      "model": "phantom",
+      "stratum": "P in [0, 3) d",
+      "n": 868,
+      "n_positive": 344,
+      "ap": 0.7837203454353107,
+      "auc": 0.8440162879460322,
+      "p_at_r90": 0.5626134301270418,
+      "p_at_r95": 0.5054095826893354
+    },
+    {
+      "model": "astronet",
+      "stratum": "P in [0, 3) d",
+      "n": 868,
+      "n_positive": 344,
+      "ap": 0.795742965141602,
+      "auc": 0.8489537102787147,
+      "p_at_r90": 0.5685557586837294,
+      "p_at_r95": 0.5157232704402516
+    },
+    {
+      "model": "phantom",
+      "stratum": "P in [3, 10) d",
+      "n": 1018,
+      "n_positive": 663,
+      "ap": 0.8319078654415449,
+      "auc": 0.7496186773734412,
+      "p_at_r90": 0.71875,
+      "p_at_r95": 0.6858695652173913
+    },
+    {
+      "model": "astronet",
+      "stratum": "P in [3, 10) d",
+      "n": 1018,
+      "n_positive": 663,
+      "ap": 0.8405842492889221,
+      "auc": 0.7779533915407985,
+      "p_at_r90": 0.7683397683397684,
+      "p_at_r95": 0.7216494845360825
+    },
+    {
+      "model": "phantom",
+      "stratum": "P in [10, inf) d",
+      "n": 465,
+      "n_positive": 291,
+      "ap": 0.7444629502094334,
+      "auc": 0.6319074139905991,
+      "p_at_r90": 0.645320197044335,
+      "p_at_r95": 0.634703196347032
+    },
+    {
+      "model": "astronet",
+      "stratum": "P in [10, inf) d",
+      "n": 465,
+      "n_positive": 291,
+      "ap": 0.7366224210856723,
+      "auc": 0.6073488170004344,
+      "p_at_r90": 0.6346153846153846,
+      "p_at_r95": 0.6331096196868009
+    }
+  ],
+  "tess_recalibration": [
+    {
+      "model": "phantom",
+      "temperature": 3.727443609022556,
+      "n_fit": 470,
+      "n_eval": 1881,
+      "ap_before": 0.7873383857755456,
+      "ap_after": 0.7873383857755456,
+      "ece_before": 0.1719916726896764,
+      "ece_after": 0.09341010082550724
+    },
+    {
+      "model": "astronet",
+      "temperature": 4.0,
+      "n_fit": 470,
+      "n_eval": 1881,
+      "ap_before": 0.7951165450380812,
+      "ap_after": 0.7949002843371357,
+      "ece_before": 0.15937665000643061,
+      "ece_after": 0.1314877856627764
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+<mxfile host="Electron" agent="Mozilla/5.0 drawio" version="29.5.2">
+  <diagram id="phantom-architecture" name="PHANTOM architecture">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================= INPUT LAYER ================= -->
+        <mxCell id="in-band" value="INPUT &mdash; one candidate rendered as nine phase-folded views plus scalar features" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="20" width="900" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="in-cap1" value="flux views, folded at the reported period P" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="52" width="420" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="in-g" value="Global&#xa;2001 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="72" width="140" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-l" value="Local&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="205" y="72" width="100" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-o" value="Odd&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="320" y="72" width="100" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-e" value="Even&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="435" y="72" width="100" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-s" value="Secondary&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="72" width="110" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="in-cap2" value="harmonic folds (P/2, 2P) and centroid light position" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="138" width="420" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="in-h1" value="P/2 fold&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="158" width="140" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-h2" value="2P fold&#xa;2001 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="205" y="158" width="140" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-cg" value="Centroid global&#xa;2001 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="360" y="158" width="140" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="in-cl" value="Centroid local&#xa;201 bins" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="515" y="158" width="140" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="in-scal" value="Scalar features&#xa;transit, stellar, diagnostic,&#xa;light-curve-derived" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="690" y="72" width="220" height="138" as="geometry" />
+        </mxCell>
+
+        <!-- ================= ENCODING LAYER ================= -->
+        <mxCell id="enc-band" value="ENCODING &mdash; each view becomes one token" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="340" width="900" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="enc-cnn" value="1-D CNN view encoders&#xa;5 residual stages (2001-bin views)&#xa;3 residual stages (201-bin views)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="398" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="enc-tok" value="mean &oplus; max pool&#xa;token, d = 256" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="370" y="398" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="enc-emb" value="additive embeddings&#xa;view type + period hypothesis (P/2, P, 2P)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="560" y="398" width="330" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ================= FUSION LAYER ================= -->
+        <mxCell id="fus-band" value="FUSION &mdash; harmonic-hypothesis attention over the nine tokens" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="510" width="900" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="fus-tf" value="Transformer encoder&#xa;3 layers &times; 8 heads, pre-norm,&#xa;classification token" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="572" width="290" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="fus-con" value="Harmonic contrast head&#xa;c = [ h_P &#8741; h_P &minus; h_P/2 &#8741; h_P &minus; h_2P &#8741; |h_P &minus; h_2P| ]" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="572" width="400" height="62" as="geometry" />
+        </mxCell>
+
+        <!-- ================= OUTPUT LAYER ================= -->
+        <mxCell id="out-band" value="OUTPUT &mdash; a vetting decision and a physical sketch of the transit" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="690" width="900" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="out-clf" value="Vetting classifier&#xa;planet vs. not planet" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="760" width="220" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="out-dec" value="Transit decoder&#xa;five physical parameters: depth, duration,&#xa;phase, limb darkening, ingress softness" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="320" y="760" width="330" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="out-rec" value="re-drawn transit&#xa;(five parameters)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="700" y="760" width="200" height="62" as="geometry" />
+        </mxCell>
+
+        <!-- ================= TRAINING BAND ================= -->
+        <mxCell id="tr-band" value="TRAINING OBJECTIVE" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="890" width="900" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="tr-loss" value="L = L_bce(classification) + 5 &middot; &#8214; reconstruction residual &#8214;_2&#178;&#xa;AdamW &middot; one-cycle schedule &middot; early stop on validation average precision" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="942" width="840" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ================= EDGES ================= -->
+        <mxCell id="e-views-cnn" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="330" />
+              <mxPoint x="200" y="396" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-harm-cnn" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="330" />
+              <mxPoint x="300" y="396" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cnn-tok" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="428" />
+              <mxPoint x="370" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-emb-tok" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="428" />
+              <mxPoint x="520" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-tok-tf" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="445" y="458" />
+              <mxPoint x="445" y="505" />
+              <mxPoint x="205" y="505" />
+              <mxPoint x="205" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-tf-clf" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="165" y="634" />
+              <mxPoint x="165" y="680" />
+              <mxPoint x="165" y="758" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-con-dec" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="634" />
+              <mxPoint x="710" y="680" />
+              <mxPoint x="485" y="680" />
+              <mxPoint x="485" y="758" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-dec-rec" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="791" />
+              <mxPoint x="700" y="791" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-clf-loss" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="165" y="822" />
+              <mxPoint x="165" y="940" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-rec-loss" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="822" />
+              <mxPoint x="790" y="885" />
+              <mxPoint x="760" y="885" />
+              <mxPoint x="760" y="940" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-scal" value="" style="endArrow=block;html=1;strokeWidth=2;startArrow=none;dashed=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="210" />
+              <mxPoint x="985" y="210" />
+              <mxPoint x="985" y="560" />
+              <mxPoint x="520" y="560" />
+              <mxPoint x="520" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-scal-lbl" value="scalars (projected)" style="text;html=1;fillColor=#ffffff;strokeColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="536" width="130" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
