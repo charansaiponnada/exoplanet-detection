@@ -1,0 +1,100 @@
+%% PHANTOM architecture, drawn in the visual grammar of Vaswani et al. (2017),
+%% Figure 1: rounded pastel blocks, a dashed repeat group, and an explicit
+%% residual path around each sublayer.
+\begin{tikzpicture}[
+  font=\small,
+  box/.style   = {rounded corners=3pt, draw=black!55, line width=0.5pt,
+                  minimum height=7.5mm, inner xsep=3mm, align=center},
+  attn/.style  = {box, fill=orange!35},
+  norm/.style  = {box, fill=yellow!30},
+  ff/.style    = {box, fill=blue!16},
+  emb/.style   = {box, fill=red!16},
+  lin/.style   = {box, fill=violet!16},
+  outb/.style  = {box, fill=green!18},
+  dec/.style   = {box, fill=teal!16},
+  ar/.style    = {-{Latex[length=2mm,width=1.6mm]}, draw=black!70, line width=0.5pt},
+  plus/.style  = {circle, draw=black!60, inner sep=0pt, minimum size=3.6mm},
+]
+
+%% ---------------------------------------------------------------- main stack
+\node[emb, minimum width=46mm] (views)
+  {Nine phase-folded views\\[-1pt]{\scriptsize flux, odd, even, secondary, $P/2$, $2P$, centroids}};
+\node[ff, minimum width=46mm, above=8mm of views] (enc)
+  {View Encoder\\[-1pt]{\scriptsize residual 1-D CNN, one per view}};
+\node[plus, above=7mm of enc] (add1) {$+$};
+
+\node[attn, minimum width=46mm, above=7mm of add1] (mha)
+  {Multi-Head Attention\\[-1pt]{\scriptsize over view tokens}};
+\node[norm, minimum width=46mm, above=5mm of mha] (an1) {Add \& Norm};
+\node[ff,   minimum width=46mm, above=5mm of an1] (ffn) {Feed Forward};
+\node[norm, minimum width=46mm, above=5mm of ffn] (an2) {Add \& Norm};
+
+%% view-type and period-hypothesis embeddings, entering at the encoder output
+\node[emb, minimum width=26mm, left=9mm of enc, font=\scriptsize] (vemb)
+  {View-type \&\\[-1pt]period-hypothesis\\[-1pt]embedding};
+
+%% dashed repeat group, as in the source figure's "N x"
+\begin{scope}[on background layer]
+  \node[draw=black!45, dashed, rounded corners=4pt, line width=0.5pt,
+        fit=(mha)(an1)(ffn)(an2), inner sep=3mm] (block) {};
+\end{scope}
+\node[anchor=east, font=\footnotesize] at ([xshift=-13mm]block.west) {$N\times$};
+
+%% -------------------------------------------------------------- fusion layer
+\node[attn, minimum width=26mm, above=11mm of an2, xshift=-17mm] (contrast)
+  {Harmonic\\[-1pt]Contrast};
+\node[outb, minimum width=16mm, above=11mm of an2, xshift=4mm] (cls) {CLS};
+\node[ff, minimum width=18mm, right=3mm of cls] (scal) {Scalars};
+
+\node[lin, minimum width=58mm, above=8mm of cls, xshift=-4mm] (concat)
+  {Concatenate $\rightarrow$ MLP};
+\node[lin, minimum width=24mm, above=6mm of concat] (linear) {Linear};
+\node[outb, minimum width=24mm, above=5mm of linear] (sig) {Sigmoid};
+\node[above=5mm of sig, font=\small] (score) {Vetting score};
+
+%% ------------------------------------------------------------- decoder branch
+\node[dec, minimum width=32mm, right=26mm of an2, font=\scriptsize] (params)
+  {Physical bottleneck\\[-1pt]$\delta,\ \tau,\ \phi,\ u,\ s$};
+\node[dec, minimum width=32mm, below=7mm of params, font=\scriptsize] (render)
+  {Differentiable\\[-1pt]transit renderer};
+\node[dec, minimum width=32mm, below=7mm of render, font=\scriptsize] (recon)
+  {Reconstruction\\[-1pt]residual};
+\begin{scope}[on background layer]
+  \node[draw=black!45, dashed, rounded corners=4pt, line width=0.5pt,
+        fit=(params)(render)(recon), inner sep=3mm] (decblock) {};
+\end{scope}
+\node[anchor=south, font=\footnotesize, align=center]
+  at ([yshift=1.5mm]decblock.north) {Transit decoder\\[-2pt]{\scriptsize no parameter labels}};
+
+%% ---------------------------------------------------------------------- flow
+\draw[ar] (views) -- (enc);
+\draw[ar] (enc)   -- (add1);
+\draw[ar] (vemb.east) -- (add1.west);
+\draw[ar] (add1)  -- (mha);
+\draw[ar] (mha)   -- (an1);
+\draw[ar] (an1)   -- (ffn);
+\draw[ar] (ffn)   -- (an2);
+
+%% residual bypasses around each sublayer, as in the source figure
+\draw[ar] ([yshift=2.5mm]add1.north) -| ([xshift=-27mm]an1.center) -- (an1.west);
+\draw[ar] ([yshift=2.5mm]an1.north)  -| ([xshift=-27mm]an2.center) -- (an2.west);
+
+%% the transformer output feeds the three classifier inputs and the decoder
+\draw[ar] (an2.north) -- ++(0,4mm) -| (contrast.south);
+\draw[ar] (an2.north) -- ++(0,4mm) -| (cls.south);
+\draw[ar] (an2.east)  -- (params.west);
+
+\draw[ar] (params) -- (render);
+\draw[ar] (render) -- (recon);
+
+%% decoder features join the classifier up the right-hand side
+\draw[ar] (recon.east) -| ([xshift=12mm]decblock.east) |- (concat.east);
+
+\draw[ar] (contrast.north) -- ++(0,4.5mm) -| ([xshift=-18mm]concat.south);
+\draw[ar] (cls.north)      -- ++(0,4.5mm) -| ([xshift=0mm]concat.south);
+\draw[ar] (scal.north)     -- ++(0,4.5mm) -| ([xshift=14mm]concat.south);
+\draw[ar] (concat) -- (linear);
+\draw[ar] (linear) -- (sig);
+\draw[ar] (sig)    -- (score);
+
+\end{tikzpicture}

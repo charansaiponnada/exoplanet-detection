@@ -44,11 +44,13 @@ fits a five-parameter transit model on the side, from the light curve alone,
 without ever being taught a transit shape. On the 15{,}683 labelled Kepler DR24
 threshold-crossing events, \phantomnet{} reaches an average precision of
 $0.9732 \pm 0.0097$ against $0.9385 \pm 0.0093$ for a faithfully reimplemented
-\astronet{} trained on identical splits ($p = 4\times10^{-4}$, five seeds). The
-gain is architectural, and we show it by decomposing it: given only the two views
-\astronet{} itself receives, \phantomnet{} still wins by $0.0242$
-($p = 7\times10^{-3}$), while the extra views and scalars add a smaller,
-individually marginal $0.0105$. Operationally, precision at $95$ per cent recall
+\astronet{} trained on identical splits ($p = 4\times10^{-4}$, five seeds). We
+decompose the gain and find it is mostly a matter of evidence, not architecture:
+given only the two views \astronet{} itself receives and no scalar features,
+a matched contrast of the two architectures shows no significant difference
+($p = 0.42$); the improvement in Table~\ref{tab:main} comes from the seven
+additional views and the scalar diagnostics, fused by an architecture that
+accepts a variable-length input set. Operationally, precision at $95$ per cent recall
 rises from $0.805 \pm 0.033$ to $0.927 \pm 0.022$ ($p = 2\times10^{-4}$),
 cutting the false positives in a follow-up list by $62$ per cent.
 
@@ -172,8 +174,10 @@ actually earn their place. Our contributions are as follows.
       reimplemented \astronet{} by $0.0347$ at matched training budget and
       slightly \emph{lower} parameter count, and cuts the false-positive content
       of a $95$ per cent recall candidate list by $62$ per cent. The gain is
-      architectural: restricted to exactly the two views \astronet{} receives,
-      \phantomnet{} still beats it by $0.0242$ (Section~\ref{sec:comparison}).
+      mostly a matter of additional evidence rather than a per-input
+      architectural edge: restricted to exactly the two views \astronet{}
+      receives and no scalar features, the two architectures are statistically
+      indistinguishable (Section~\ref{sec:comparison}).
 \item \textbf{A differentiable transit decoder.} A five-parameter analytic
       transit model is rendered onto the local view and fitted by reconstruction
       with no parameter supervision (Section~\ref{sec:decoder}). Its bottleneck
@@ -803,13 +807,28 @@ input set, add little beyond that: by the time centroid and scalar evidence is
 gone, dropping the harmonic folds, the secondary view, and finally the odd/even
 views costs $0.0019$--$0.0027$ each, small individually but cumulatively enough
 to land within $0.0035$ of \astronet{}'s own reported operating point on
-identical inputs. That gap --- architecture holding inputs fixed at both ends of
-the chain --- is the cleanest single number in this study for how much of the
-headline improvement is attributable to the transformer fusion itself rather
-than to the extra channels: on \astronet{}'s two views, \phantomnet{} still wins
-by $0.0242$ (Section~\ref{sec:conclusions}), and the remaining seven views and
-scalar block recover most, but not all, of the difference between that number
-and the $0.0347$ gap in Table~\ref{tab:ablation}.
+identical inputs ($0.9320 \pm 0.0141$ versus \astronet{}'s $0.9385 \pm 0.0093$,
+$p = 0.42$).
+
+This last comparison is the cleanest architecture-only test in the paper, and
+it complicates the reading given in Section~\ref{sec:comparison}. There, the
+$0.0242$ gain attributed to ``the transformer-over-views architecture on
+identical inputs'' used a configuration that shares \astronet{}'s two views but
+still has scalar access (Table~\ref{tab:ablation}, ``global and local views
+only'', $0.9627 \pm 0.0117$); it is not a matched comparison. With scalars
+removed on both sides --- the last link of Table~\ref{tab:nested}, which is
+\astronet{}'s input set exactly --- \phantomnet{} does not win: it trails by
+$0.0065$, and the difference is not significant in either direction. The honest
+summary is therefore that the transformer-over-views fusion carries no
+measurable advantage over \astronet{}'s convolutional architecture when both
+see the same two views and nothing else; the $0.0242$ gap reported earlier
+reflects \phantomnet{}'s access to scalar features in that configuration, not a
+architectural advantage per se, and should be read as such. The headline
+improvement in Table~\ref{tab:main} is real and well powered, but its source is
+better described as \emph{more, and better-fused, evidence} --- nine views plus
+scalars, combined by an architecture that tolerates a variable-length input
+set --- than as a per-input architectural edge of the transformer over a
+convolutional network.
 
 \subsection{Calibration and distribution-free candidate selection}
 \label{sec:conformalresult}
@@ -1024,10 +1043,12 @@ a transformer over per-view tokens, together with a differentiable transit model
 fitted by reconstruction alone. On the Kepler DR24 benchmark it improves average
 precision over a matched \astronet{} baseline from $0.9385$ to $0.9732$ and cuts
 the false-positive content of a $95$ per cent recall candidate list by $62$ per
-cent, using fewer parameters. Most of that gain is architectural rather than a
-matter of input channels: restricted to the two views \astronet{} itself
-receives, \phantomnet{} already wins by $0.0242$, and the remaining seven views
-and the scalar features add a smaller, individually marginal $0.0105$. Conformal
+cent, using fewer parameters. Most of that gain is a matter of input channels
+rather than architecture: restricted to the two views \astronet{} itself
+receives and stripped of scalar features, the transformer-over-views fusion is
+statistically indistinguishable from \astronet{}'s convolutional network
+($p = 0.42$, Section~\ref{sec:ablation}); the seven additional views and the
+scalar diagnostics account for essentially all of the improvement. Conformal
 $p$-values with Benjamini--Hochberg
 selection deliver false-discovery-rate control at the five-to-twenty per cent
 targets a follow-up programme operates in, and the unsupervised decoder recovers
